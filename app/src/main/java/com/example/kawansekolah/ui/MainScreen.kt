@@ -16,6 +16,7 @@ import com.example.kawansekolah.data.model.SchoolLevel
 import com.example.kawansekolah.data.model.Subject
 import com.example.kawansekolah.data.model.UserRole
 import com.example.kawansekolah.data.repository.SchoolRepository
+import com.example.kawansekolah.domain.RouteGuard
 import com.example.kawansekolah.ui.ai.AiScreen
 import com.example.kawansekolah.ui.beranda.BerandaScreen
 import com.example.kawansekolah.ui.components.BottomNavigationBar
@@ -57,20 +58,14 @@ fun MainScreen(
         Log.d("ScolarsiaAuth", "BackHandler di Beranda aktif: Menahan tombol Back agar tidak keluar dari akun.")
     }
 
-    // Guard Navigasi Antar Peran (Admin vs Non-Admin)
-    val adminRoutes = remember { setOf("admin_beranda", "admin_pengguna", "admin_akademik", "admin_penugasan_guru", "admin_profil", "admin_detail_akun", "admin_daftar_akun", "admin_impor_csv") }
-
+    // Guard Navigasi Antar Peran menggunakan RouteGuard utama
     LaunchedEffect(currentRoute, userRole) {
         if (currentRoute != null) {
-            val isAdminRoute = adminRoutes.contains(currentRoute)
-            if (userRole == UserRole.ADMIN && !isAdminRoute && currentRoute != "ubah_kata_sandi" && currentRoute != "privasi_notifikasi" && currentRoute != "perangkat_sesi") {
-                Log.w("ScolarsiaA uth", "Navigasi Ditolak: User ADMIN mencoba mengakses route '$currentRoute'. Mengarahkan kembali ke admin_beranda.")
-                navController.navigate("admin_beranda") {
-                    popUpTo(0) { inclusive = true }
-                }
-            } else if (userRole != UserRole.ADMIN && isAdminRoute) {
-                Log.w("ScolarsiaAuth", "Navigasi Ditolak: User ${userRole.name} dilarang mengakses route ADMIN '$currentRoute'. Mengarahkan kembali ke beranda.")
-                navController.navigate("beranda") {
+            val isAllowed = RouteGuard.isRouteAllowedForRole(userRole, currentRoute)
+            if (!isAllowed) {
+                val homeRoute = RouteGuard.getHomeRouteForRole(userRole)
+                Log.w("ScolarsiaAuth", "Navigasi Ditolak: User ${userRole.name} dilarang mengakses route '$currentRoute'. Mengarahkan kembali ke $homeRoute.")
+                navController.navigate(homeRoute) {
                     popUpTo(0) { inclusive = true }
                 }
             }
@@ -78,9 +73,9 @@ fun MainScreen(
     }
 
     LaunchedEffect(initialNavigateTo) {
-        if (!initialNavigateTo.isNullOrBlank()) {
+        if (!initialNavigateTo.isNullOrBlank() && RouteGuard.isRouteAllowedForRole(userRole, initialNavigateTo)) {
             navController.navigate(initialNavigateTo) {
-                popUpTo("beranda") { saveState = true }
+                popUpTo(RouteGuard.getHomeRouteForRole(userRole)) { saveState = true }
                 launchSingleTop = true
                 restoreState = true
             }
@@ -167,12 +162,6 @@ fun MainScreen(
         showNotificationSheet = true
     }
 
-    val markAllNotificationsAsRead = {
-        notifications = notifications.map { item ->
-            item.copy(isRead = true)
-        }
-    }
-
     val clearAllNotifications = {
         notifications = notifications.filter { item ->
             item.type == NotificationType.AI_RUNNING
@@ -201,10 +190,7 @@ fun MainScreen(
         }
     }
 
-    val startDest = when (userRole) {
-        UserRole.ADMIN -> "admin_beranda"
-        else -> "beranda"
-    }
+    val startDest = RouteGuard.getHomeRouteForRole(userRole)
 
     val roleString = when (userRole) {
         UserRole.GURU -> "GURU_MAPEL"
@@ -214,7 +200,7 @@ fun MainScreen(
         UserRole.ADMIN -> "ADMIN"
     }
 
-    val activeUserId = Firebase.auth.currentUser?.uid ?: "teacher_user"
+    val activeUserId = Firebase.auth.currentUser?.uid ?: "user_active"
 
     Scaffold(
         bottomBar = {
@@ -230,93 +216,122 @@ fun MainScreen(
             startDestination = startDest,
             modifier = Modifier.padding(bottom = innerPadding.calculateBottomPadding())
         ) {
-            composable("guru_input") {
-                InputNilaiScreen(
-                    userRole = roleString,
-                    userId = activeUserId,
-                    onNavigateToCsvUpload = { navController.navigate("unggah_csv") },
-                    onBack = { navController.popBackStack() }
-                )
+            // GURU ROUTES
+            if (RouteGuard.isRouteAllowedForRole(userRole, "guru_input")) {
+                composable("guru_input") {
+                    InputNilaiScreen(
+                        userRole = roleString,
+                        userId = activeUserId,
+                        onNavigateToCsvUpload = { navController.navigate("unggah_csv") },
+                        onBack = { navController.popBackStack() }
+                    )
+                }
             }
-            composable("unggah_csv") {
-                UnggahCsvScreen(
-                    userRole = roleString,
-                    userId = activeUserId,
-                    onBack = { navController.popBackStack() }
-                )
+            if (RouteGuard.isRouteAllowedForRole(userRole, "unggah_csv")) {
+                composable("unggah_csv") {
+                    UnggahCsvScreen(
+                        userRole = roleString,
+                        userId = activeUserId,
+                        onBack = { navController.popBackStack() }
+                    )
+                }
             }
-            composable("rekap_wali") {
-                RekapNilaiScreen(
-                    userRole = roleString,
-                    userId = activeUserId,
-                    onNavigateToStatistik = { navController.navigate("statistik") },
-                    onBack = { navController.popBackStack() }
-                )
+            if (RouteGuard.isRouteAllowedForRole(userRole, "guru_dashboard")) {
+                composable("guru_dashboard") {
+                    GuruScreen(
+                        userName = userName,
+                        grades = grades,
+                        unreadCount = unreadCount,
+                        onNotificationClick = handleNotificationClick,
+                        onUpdateGrade = updateGrade
+                    )
+                }
             }
-            composable("statistik") {
-                StatistikScreen(
-                    userRole = roleString,
-                    userId = activeUserId
-                )
+
+            // WALI KELAS ROUTES
+            if (RouteGuard.isRouteAllowedForRole(userRole, "rekap_wali")) {
+                composable("rekap_wali") {
+                    RekapNilaiScreen(
+                        userRole = roleString,
+                        userId = activeUserId,
+                        onNavigateToStatistik = { navController.navigate("statistik") },
+                        onBack = { navController.popBackStack() }
+                    )
+                }
             }
-            composable("insight_page") {
-                InsightScreen(
-                    userRole = roleString,
-                    userId = activeUserId
-                )
+            if (RouteGuard.isRouteAllowedForRole(userRole, "statistik")) {
+                composable("statistik") {
+                    StatistikScreen(
+                        userRole = roleString,
+                        userId = activeUserId
+                    )
+                }
             }
-            composable("guru_dashboard") {
-                GuruScreen(
-                    userName = userName,
-                    grades = grades,
-                    unreadCount = unreadCount,
-                    onNotificationClick = handleNotificationClick,
-                    onUpdateGrade = updateGrade
-                )
+
+            // SHARED BETWEEN GURU & WALI KELAS
+            if (RouteGuard.isRouteAllowedForRole(userRole, "insight_page")) {
+                composable("insight_page") {
+                    InsightScreen(
+                        userRole = roleString,
+                        userId = activeUserId
+                    )
+                }
             }
-            composable("beranda") {
-                BerandaScreen(
-                    navController = navController,
-                    userName = userName,
-                    userRole = userRole,
-                    subjects = subjects,
-                    tasks = tasks,
-                    unreadCount = unreadCount,
-                    onNotificationClick = handleNotificationClick,
-                    onToggleTask = toggleTask,
-                    onSelectSubject = { selectedSubjectForDetail = it }
-                )
+
+            // GENERAL USER ROUTES
+            if (RouteGuard.isRouteAllowedForRole(userRole, "beranda")) {
+                composable("beranda") {
+                    BerandaScreen(
+                        navController = navController,
+                        userName = userName,
+                        userRole = userRole,
+                        subjects = subjects,
+                        tasks = tasks,
+                        unreadCount = unreadCount,
+                        onNotificationClick = handleNotificationClick,
+                        onToggleTask = toggleTask,
+                        onSelectSubject = { selectedSubjectForDetail = it }
+                    )
+                }
             }
-            composable("pelajaran") {
-                PelajaranScreen(
-                    userName = userName,
-                    subjects = subjects,
-                    unreadCount = unreadCount,
-                    onNotificationClick = handleNotificationClick,
-                    onSelectSubject = { selectedSubjectForDetail = it }
-                )
+            if (RouteGuard.isRouteAllowedForRole(userRole, "pelajaran")) {
+                composable("pelajaran") {
+                    PelajaranScreen(
+                        userName = userName,
+                        subjects = subjects,
+                        unreadCount = unreadCount,
+                        onNotificationClick = handleNotificationClick,
+                        onSelectSubject = { selectedSubjectForDetail = it }
+                    )
+                }
             }
-            composable("ai") {
-                AiScreen(
-                    userName = userName,
-                    userRole = userRole,
-                    unreadCount = unreadCount,
-                    onNotificationClick = handleNotificationClick,
-                    onNewNotification = { newNotification ->
-                        notifications = notifications.filterNot { it.id == newNotification.id } + newNotification
-                    },
-                    onUpdateGrade = updateGrade
-                )
+            if (RouteGuard.isRouteAllowedForRole(userRole, "ai")) {
+                composable("ai") {
+                    AiScreen(
+                        userName = userName,
+                        userRole = userRole,
+                        unreadCount = unreadCount,
+                        onNotificationClick = handleNotificationClick,
+                        onNewNotification = { newNotification ->
+                            notifications = notifications.filterNot { it.id == newNotification.id } + newNotification
+                        },
+                        onUpdateGrade = updateGrade
+                    )
+                }
             }
-            composable("nilai") {
-                NilaiScreen(
-                    userName = userName,
-                    userRole = userRole,
-                    grades = grades,
-                    unreadCount = unreadCount,
-                    onNotificationClick = handleNotificationClick
-                )
+            if (RouteGuard.isRouteAllowedForRole(userRole, "nilai")) {
+                composable("nilai") {
+                    NilaiScreen(
+                        userName = userName,
+                        userRole = userRole,
+                        grades = grades,
+                        unreadCount = unreadCount,
+                        onNotificationClick = handleNotificationClick
+                    )
+                }
             }
+
+            // PROFILE & ACCOUNT SETTINGS (ALL ROLES)
             composable("profil") {
                 ProfilScreen(
                     userName = userName,
@@ -341,62 +356,79 @@ fun MainScreen(
             composable("perangkat_sesi") {
                 com.example.kawansekolah.ui.profil.PerangkatSesiScreen(onBackClick = { navController.popBackStack() })
             }
+
             // ADMIN ROUTES
-            composable("admin_beranda") {
-                com.example.kawansekolah.ui.admin.AdminBerandaScreen(
-                    userName = userName,
-                    unreadCount = unreadCount,
-                    onNotificationClick = handleNotificationClick,
-                    onNavigateToPengguna = { navController.navigate("admin_pengguna") },
-                    onNavigateToAkademik = { navController.navigate("admin_pengguna") }
-                )
+            if (RouteGuard.isRouteAllowedForRole(userRole, "admin_beranda")) {
+                composable("admin_beranda") {
+                    com.example.kawansekolah.ui.admin.AdminBerandaScreen(
+                        userName = userName,
+                        unreadCount = unreadCount,
+                        onNotificationClick = handleNotificationClick,
+                        onNavigateToPengguna = { navController.navigate("admin_pengguna") },
+                        onNavigateToAkademik = { navController.navigate("admin_pengguna") }
+                    )
+                }
             }
-            composable("admin_pengguna") {
-                com.example.kawansekolah.ui.admin.AdminPenggunaScreen(
-                    onNavigateToDetail = { navController.navigate("admin_detail_akun") },
-                    onNavigateToDaftarAccount = { navController.navigate("admin_daftar_akun") },
-                    onNavigateToPenugasanGuru = { navController.navigate("admin_penugasan_guru") }
-                )
+            if (RouteGuard.isRouteAllowedForRole(userRole, "admin_pengguna")) {
+                composable("admin_pengguna") {
+                    com.example.kawansekolah.ui.admin.AdminPenggunaScreen(
+                        onNavigateToDetail = { navController.navigate("admin_detail_akun") },
+                        onNavigateToDaftarAccount = { navController.navigate("admin_daftar_akun") },
+                        onNavigateToPenugasanGuru = { navController.navigate("admin_penugasan_guru") }
+                    )
+                }
             }
-            composable("admin_akademik") {
-                com.example.kawansekolah.ui.admin.AdminPenggunaScreen(
-                    onNavigateToDetail = { navController.navigate("admin_detail_akun") },
-                    onNavigateToDaftarAccount = { navController.navigate("admin_daftar_akun") },
-                    onNavigateToPenugasanGuru = { navController.navigate("admin_penugasan_guru") }
-                )
+            if (RouteGuard.isRouteAllowedForRole(userRole, "admin_akademik")) {
+                composable("admin_akademik") {
+                    com.example.kawansekolah.ui.admin.AdminPenggunaScreen(
+                        onNavigateToDetail = { navController.navigate("admin_detail_akun") },
+                        onNavigateToDaftarAccount = { navController.navigate("admin_daftar_akun") },
+                        onNavigateToPenugasanGuru = { navController.navigate("admin_penugasan_guru") }
+                    )
+                }
             }
-            composable("admin_penugasan_guru") {
-                com.example.kawansekolah.ui.admin.AdminPenugasanGuruScreen(
-                    onBackClick = { navController.popBackStack() }
-                )
+            if (RouteGuard.isRouteAllowedForRole(userRole, "admin_penugasan_guru")) {
+                composable("admin_penugasan_guru") {
+                    com.example.kawansekolah.ui.admin.AdminPenugasanGuruScreen(
+                        onBackClick = { navController.popBackStack() }
+                    )
+                }
             }
-            composable("admin_profil") {
-                com.example.kawansekolah.ui.admin.AdminProfilScreen(
-                    adminName = userName,
-                    onLogoutClick = onLogout,
-                    onUbahKataSandiClick = { navController.navigate("ubah_kata_sandi") },
-                    onPrivasiNotifikasiClick = { navController.navigate("privasi_notifikasi") },
-                    onPerangkatSesiClick = { navController.navigate("perangkat_sesi") }
-                )
+            if (RouteGuard.isRouteAllowedForRole(userRole, "admin_profil")) {
+                composable("admin_profil") {
+                    com.example.kawansekolah.ui.admin.AdminProfilScreen(
+                        adminName = userName,
+                        onLogoutClick = onLogout,
+                        onUbahKataSandiClick = { navController.navigate("ubah_kata_sandi") },
+                        onPrivasiNotifikasiClick = { navController.navigate("privasi_notifikasi") },
+                        onPerangkatSesiClick = { navController.navigate("perangkat_sesi") }
+                    )
+                }
             }
-            composable("admin_detail_akun") {
-                com.example.kawansekolah.ui.admin.AdminDetailAkunScreen(
-                    onBackClick = { navController.popBackStack() },
-                    onNavigateToPenugasanGuru = { navController.navigate("admin_penugasan_guru") }
-                )
+            if (RouteGuard.isRouteAllowedForRole(userRole, "admin_detail_akun")) {
+                composable("admin_detail_akun") {
+                    com.example.kawansekolah.ui.admin.AdminDetailAkunScreen(
+                        onBackClick = { navController.popBackStack() },
+                        onNavigateToPenugasanGuru = { navController.navigate("admin_penugasan_guru") }
+                    )
+                }
             }
-            composable("admin_daftar_akun") {
-                com.example.kawansekolah.ui.admin.AdminDaftarAkunScreen(
-                    onBackClick = { navController.popBackStack() },
-                    onImportCsvClick = { navController.navigate("admin_impor_csv") },
-                    onNavigateToPenugasanGuru = { navController.navigate("admin_penugasan_guru") },
-                    onAccountCreated = { navController.popBackStack() }
-                )
+            if (RouteGuard.isRouteAllowedForRole(userRole, "admin_daftar_akun")) {
+                composable("admin_daftar_akun") {
+                    com.example.kawansekolah.ui.admin.AdminDaftarAkunScreen(
+                        onBackClick = { navController.popBackStack() },
+                        onImportCsvClick = { navController.navigate("admin_impor_csv") },
+                        onNavigateToPenugasanGuru = { navController.navigate("admin_penugasan_guru") },
+                        onAccountCreated = { navController.popBackStack() }
+                    )
+                }
             }
-            composable("admin_impor_csv") {
-                com.example.kawansekolah.ui.admin.AdminImporCsvScreen(
-                    onBackClick = { navController.popBackStack() }
-                )
+            if (RouteGuard.isRouteAllowedForRole(userRole, "admin_impor_csv")) {
+                composable("admin_impor_csv") {
+                    com.example.kawansekolah.ui.admin.AdminImporCsvScreen(
+                        onBackClick = { navController.popBackStack() }
+                    )
+                }
             }
         }
     }

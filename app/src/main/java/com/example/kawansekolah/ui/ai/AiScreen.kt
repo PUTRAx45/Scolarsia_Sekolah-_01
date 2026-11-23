@@ -134,10 +134,10 @@ fun AiScreen(
                         CircularProgressIndicator(modifier = Modifier.size(20.dp), strokeWidth = 2.dp)
                         Spacer(modifier = Modifier.width(8.dp))
                         Text(
-                            text = if (uiState.waitingSeconds >= 5) "AI sedang memproses... (${uiState.waitingSeconds}s)" else "AI Scolarsia sedang berpikir...",
+                            text = if (uiState.waitingSeconds >= 20) "AI sedang menyiapkan jawaban, mohon tunggu (${uiState.waitingSeconds}s)" else if (uiState.waitingSeconds >= 5) "AI sedang memproses... (${uiState.waitingSeconds}s)" else "AI Scolarsia sedang berpikir...",
                             fontSize = 12.sp,
-                            fontWeight = if (uiState.waitingSeconds >= 5) FontWeight.Bold else FontWeight.Medium,
-                            color = if (uiState.waitingSeconds >= 5) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
+                            fontWeight = if (uiState.waitingSeconds >= 20) FontWeight.Bold else FontWeight.Medium,
+                            color = if (uiState.waitingSeconds >= 20) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
                 }

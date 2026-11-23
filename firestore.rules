@@ -10,24 +10,28 @@ service cloud.firestore {
       return get(/databases/$(database)/documents/pengguna/$(request.auth.uid)).data;
     }
 
+    function getUserRole() {
+      return request.auth.token.role != null ? request.auth.token.role : getUserData().role;
+    }
+
     function isAdmin() {
-      return isSignedIn() && (getUserData().role == 'admin' || getUserData().role == 'ADMIN');
+      return isSignedIn() && (getUserRole() == 'admin' || getUserRole() == 'ADMIN');
     }
 
     function isTeacher() {
-      return isSignedIn() && (getUserData().role == 'guru' || getUserData().role == 'GURU' || getUserData().role == 'TEACHER');
+      return isSignedIn() && (getUserRole() == 'guru' || getUserRole() == 'GURU' || getUserRole() == 'TEACHER');
     }
 
     function isHomeroomTeacher() {
-      return isSignedIn() && (getUserData().role == 'wali_kelas' || getUserData().role == 'WALI_KELAS');
+      return isSignedIn() && (getUserRole() == 'wali_kelas' || getUserRole() == 'WALI_KELAS');
     }
 
     function isStudent() {
-      return isSignedIn() && (getUserData().role == 'siswa' || getUserData().role == 'SISWA');
+      return isSignedIn() && (getUserRole() == 'siswa' || getUserRole() == 'SISWA');
     }
 
     function isParent() {
-      return isSignedIn() && (getUserData().role == 'orang_tua' || getUserData().role == 'ORANG_TUA');
+      return isSignedIn() && (getUserRole() == 'orang_tua' || getUserRole() == 'ORANG_TUA');
     }
 
     // 1. Koleksi: sekolah
@@ -36,11 +40,18 @@ service cloud.firestore {
       allow write: if isAdmin();
     }
 
-    // 2. Koleksi: pengguna
+    // 2. Koleksi: pengguna & users (Profile)
     match /pengguna/{userUid} {
-      allow read: if isSignedIn();
+      allow read: if isSignedIn() && (request.auth.uid == userUid || isTeacher() || isHomeroomTeacher() || isAdmin());
       allow create: if isSignedIn();
       allow update: if isSignedIn() && (request.auth.uid == userUid || isAdmin());
+      allow delete: if isAdmin();
+    }
+
+    match /users/{userId} {
+      allow read: if isSignedIn() && (request.auth.uid == userId || isTeacher() || isHomeroomTeacher() || isAdmin());
+      allow create: if isSignedIn();
+      allow update: if isSignedIn() && (request.auth.uid == userId || isAdmin());
       allow delete: if isAdmin();
     }
 
@@ -56,9 +67,19 @@ service cloud.firestore {
     match /keanggotaanKelas/{id} { allow read: if isSignedIn(); allow write: if isAdmin(); }
     match /relasiOrangTua/{id} { allow read: if isSignedIn(); allow write: if isAdmin(); }
 
-    // 5. Koleksi: nilai & koreksiNilai
+    // 5. Koleksi: nilai & koreksiNilai & scores & grades
     match /nilai/{nilaiId} {
-      allow read: if isSignedIn();
+      allow read: if isSignedIn() && (isTeacher() || isHomeroomTeacher() || isAdmin() || (isStudent() && resource.data.studentId == request.auth.uid) || isParent());
+      allow write: if isSignedIn() && (isTeacher() || isAdmin());
+    }
+
+    match /scores/{scoreId} {
+      allow read: if isSignedIn() && (isTeacher() || isHomeroomTeacher() || isAdmin() || (isStudent() && resource.data.studentId == request.auth.uid) || isParent());
+      allow write: if isSignedIn() && (isTeacher() || isAdmin());
+    }
+
+    match /grades/{gradeId} {
+      allow read: if isSignedIn() && (isTeacher() || isHomeroomTeacher() || isAdmin() || (isStudent() && resource.data.studentId == request.auth.uid) || isParent());
       allow write: if isSignedIn() && (isTeacher() || isAdmin());
     }
 
@@ -71,14 +92,8 @@ service cloud.firestore {
     match /notifikasi/{id} { allow read, write: if isSignedIn(); }
     match /sesiPerangkat/{id} { allow read, write: if isSignedIn(); }
     match /insightCache/{id} { allow read, write: if isSignedIn(); }
-
-    // Backward Compatibility for legacy collections
-    match /penugasan/{penugasanId} { allow read: if isSignedIn(); allow write: if false; }
-    match /scores/{scoreId} { allow read, write: if isSignedIn(); }
-    match /users/{userId} { allow read, write: if isSignedIn(); }
-    match /subjects/{subjectId} { allow read, write: if isSignedIn(); }
-    match /topics/{topicId} { allow read, write: if isSignedIn(); }
-    match /grades/{gradeId} { allow read, write: if isSignedIn(); }
-    match /insights/{insightId} { allow read, write: if isSignedIn(); }
+    match /insights/{insightId} { allow read: if isSignedIn(); allow write: if isTeacher() || isAdmin(); }
+    match /subjects/{subjectId} { allow read: if isSignedIn(); allow write: if isAdmin() || isTeacher(); }
+    match /topics/{topicId} { allow read: if isSignedIn(); allow write: if isAdmin() || isTeacher(); }
   }
 }

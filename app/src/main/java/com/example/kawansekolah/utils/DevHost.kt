@@ -1,6 +1,7 @@
 package com.example.kawansekolah.utils
 
 import android.content.Context
+import android.util.Log
 import com.example.kawansekolah.BuildConfig
 import com.example.kawansekolah.FirebaseEmulatorHelper
 
@@ -8,12 +9,33 @@ object DevHost {
 
     private const val PREF_NAME = "scolarsia_dev_host_prefs"
     private const val KEY_DYNAMIC_HOST = "dynamic_server_host"
+    private const val KEY_BUILD_HOST_MARKER = "last_build_host_marker"
 
     @Volatile
     private var cachedDynamicHost: String? = null
 
+    fun syncBuildHostMarker(context: Context?) {
+        if (context == null) return
+        val prefs = context.getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE)
+        val lastBuildHost = prefs.getString(KEY_BUILD_HOST_MARKER, null)
+        val currentBuildHost = BuildConfig.DEV_SERVER_HOST.trim()
+
+        if (currentBuildHost.isNotBlank()) {
+            if (lastBuildHost != null && lastBuildHost != currentBuildHost) {
+                Log.i("ScolarsiaNet", "🔄 IP Build Berubah: '$lastBuildHost' -> '$currentBuildHost'. Menghapus IP lama dari dialog.")
+                prefs.edit()
+                    .remove(KEY_DYNAMIC_HOST)
+                    .putString(KEY_BUILD_HOST_MARKER, currentBuildHost)
+                    .commit()
+                cachedDynamicHost = ""
+            } else if (lastBuildHost == null) {
+                prefs.edit().putString(KEY_BUILD_HOST_MARKER, currentBuildHost).commit()
+            }
+        }
+    }
+
     fun getSavedDynamicHost(context: Context?): String {
-        if (cachedDynamicHost != null) return cachedDynamicHost!!
+        if (cachedDynamicHost != null && cachedDynamicHost!!.isNotBlank()) return cachedDynamicHost!!
         if (context == null) return ""
         val prefs = context.getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE)
         val host = prefs.getString(KEY_DYNAMIC_HOST, "") ?: ""
@@ -42,25 +64,19 @@ object DevHost {
 
     /**
      * Resolves host IP address and identifies its source:
-     * Returns Pair(host, sourceString)
+     * Priority 1: BuildConfig DEV_SERVER_HOST / DEV_HOST (Auto-detected from build.gradle.kts)
+     * Priority 2: SharedPreferences (saved host via dialog, if build config is empty)
+     * Priority 3: ADB Mode (127.0.0.1)
+     * Priority 4: Default (10.0.2.2 for emulator, "" for physical device)
      */
     fun getHostWithSource(context: Context? = null): Pair<String, String> {
         if (!BuildConfig.USE_EMULATOR) {
             return Pair("", "Production Online")
         }
 
-        // Priority 1: SharedPreferences / DataStore
-        val dynamicHost = getSavedDynamicHost(context)
-        if (dynamicHost.isNotBlank()) {
-            return Pair(dynamicHost, "DataStore / SharedPreferences")
-        }
+        syncBuildHostMarker(context)
 
-        // Priority 2: ADB Mode
-        if (isAdbMode()) {
-            return Pair("127.0.0.1", "ADB Mode")
-        }
-
-        // Priority 3: BuildConfig DEV_SERVER_HOST / DEV_HOST
+        // Priority 1: BuildConfig DEV_SERVER_HOST / DEV_HOST (Selalu gunakan IP dari codingan jika ada)
         val buildConfigHost = try {
             val h = BuildConfig.DEV_SERVER_HOST.trim()
             if (h.isNotBlank()) h else BuildConfig.DEV_HOST.trim()
@@ -69,7 +85,18 @@ object DevHost {
         }
 
         if (buildConfigHost.isNotBlank()) {
-            return Pair(buildConfigHost, "BuildConfig / local.properties")
+            return Pair(buildConfigHost, "BuildConfig / Wi-Fi IP Otomatis")
+        }
+
+        // Priority 2: SharedPreferences (Dialog Override)
+        val dynamicHost = getSavedDynamicHost(context)
+        if (dynamicHost.isNotBlank()) {
+            return Pair(dynamicHost, "DataStore / SharedPreferences (Dialog)")
+        }
+
+        // Priority 3: ADB Mode
+        if (isAdbMode()) {
+            return Pair("127.0.0.1", "ADB Mode")
         }
 
         // Priority 4: Default for Emulator vs Physical Device

@@ -135,39 +135,6 @@ object AuthRepository {
         }
     }
 
-    /**
-     * Diagnostic function to directly test Auth Emulator REST API over HTTP from HP
-     */
-    suspend fun testRestAuthDirect(targetHost: String, email: String, pass: String): Pair<Int, String> {
-        return withContext(Dispatchers.IO) {
-            val hostStr = targetHost.ifBlank { "10.0.2.2" }
-            val urlStr = "http://$hostStr:9099/identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key=fake"
-            try {
-                val url = java.net.URL(urlStr)
-                val conn = url.openConnection() as java.net.HttpURLConnection
-                conn.requestMethod = "POST"
-                conn.setRequestProperty("Content-Type", "application/json")
-                conn.connectTimeout = 3000
-                conn.readTimeout = 3000
-                conn.doOutput = true
-
-                val jsonBody = "{\"email\":\"$email\",\"password\":\"$pass\",\"returnSecureToken\":true}"
-                conn.outputStream.use { os -> os.write(jsonBody.toByteArray()) }
-
-                val code = conn.responseCode
-                val stream = if (code in 200..299) conn.inputStream else conn.errorStream
-                val reply = stream?.bufferedReader()?.use { it.readText() } ?: ""
-                val snippet = reply.take(200).replace("\n", " ")
-
-                Log.i("ScolarsiaNet", "🔬 [REST Auth Direct Test] Host: $hostStr:9099 | Email: $email | Status: $code | Reply (200 char): \"$snippet\"")
-                Pair(code, snippet)
-            } catch (e: Exception) {
-                Log.e("ScolarsiaNet", "🔬 [REST Auth Direct Test Error] Host: $hostStr:9099 | Exception: ${e.javaClass.simpleName} (${e.message})")
-                Pair(0, "Gagal koneksi REST: ${e.message}")
-            }
-        }
-    }
-
     suspend fun loginWithEmailOrNis(
         identifier: String,
         pass: String,
@@ -204,6 +171,28 @@ object AuthRepository {
                 }
             }
 
+            // Quick TCP check (3 seconds) to Auth port 9099 before signInWithEmailAndPassword
+            if (BuildConfig.DEBUG && BuildConfig.USE_EMULATOR) {
+                val targetHostCheck = currentHost.ifBlank { if (DevHost.isPhysicalDevice()) "" else "10.0.2.2" }
+                if (targetHostCheck.isNotBlank()) {
+                    val isAuthReachable = withContext(Dispatchers.IO) {
+                        try {
+                            java.net.Socket().use { socket ->
+                                socket.connect(java.net.InetSocketAddress(targetHostCheck, 9099), 3000)
+                                true
+                            }
+                        } catch (_: Exception) {
+                            false
+                        }
+                    }
+
+                    if (!isAuthReachable) {
+                        Log.e("ScolarsiaAuth", "TCP check 3s gagal ke $targetHostCheck:9099")
+                        throw IllegalStateException("Tidak bisa menjangkau server di $targetHostCheck:9099. Periksa IP laptop dan Wi-Fi.")
+                    }
+                }
+            }
+
             // 1. Firebase Auth signInWithEmailAndPassword
             val signInResult = try {
                 auth.signInWithEmailAndPassword(email, pass).await()
@@ -218,7 +207,7 @@ object AuthRepository {
                 Log.e("ScolarsiaAuth", "   Stack: at $stackSnippet")
 
                 if (errorCode == "ERROR_CONFIGURATION_NOT_FOUND" || msg.contains("CONFIGURATION_NOT_FOUND")) {
-                    throw IllegalStateException("Aplikasi terhubung ke server yang salah (bukan emulator). Periksa Alamat Server pada ikon ⚙️.")
+                    throw IllegalStateException("Aplikasi tidak memakai emulator. Periksa Alamat Server lalu tutup total aplikasi dan buka lagi.")
                 }
 
                 throw IllegalStateException("Gagal masuk Auth ($errorCode): $msg")
@@ -276,9 +265,15 @@ object AuthRepository {
             val expectedRoleNorm = normalizeRole(expectedRole.name)
 
             if (actualRoleNorm != expectedRoleNorm) {
-                auth.signOut()
-                Log.w("ScolarsiaAuth", "UID: $uid | Role Firestore: $actualRoleNorm | Role Kartu: $expectedRoleNorm | Keputusan: REJECTED (Role Mismatch)")
-                throw IllegalStateException("Peran tidak cocok (Akun ini mendaftar sebagai ${userProfile.userRole.label}, bukan ${expectedRole.label}).")
+                // Guru dan Wali Kelas diperbolehkan saling mengakses (dijadikan satu)
+                val isGuruOrWali = (actualRoleNorm == "GURU" || actualRoleNorm == "WALI_KELAS") && 
+                                   (expectedRoleNorm == "GURU" || expectedRoleNorm == "WALI_KELAS")
+                
+                if (!isGuruOrWali) {
+                    auth.signOut()
+                    Log.w("ScolarsiaAuth", "UID: $uid | Role Firestore: $actualRoleNorm | Role Kartu: $expectedRoleNorm | Keputusan: REJECTED (Role Mismatch)")
+                    throw IllegalStateException("Peran tidak cocok (Akun ini mendaftar sebagai ${userProfile.userRole.label}, bukan ${expectedRole.label}).")
+                }
             }
 
             // 5. Track device session in Firestore if context is available

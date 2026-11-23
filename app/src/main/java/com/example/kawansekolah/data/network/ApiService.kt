@@ -60,9 +60,9 @@ interface ApiService {
             val client = OkHttpClient.Builder()
                 .addInterceptor(retryInterceptor)
                 .addInterceptor(logging)
-                .connectTimeout(45, TimeUnit.SECONDS)
-                .readTimeout(45, TimeUnit.SECONDS)
-                .writeTimeout(45, TimeUnit.SECONDS)
+                .connectTimeout(90, TimeUnit.SECONDS)
+                .readTimeout(90, TimeUnit.SECONDS)
+                .writeTimeout(90, TimeUnit.SECONDS)
                 .build()
 
             val baseUrl = com.example.kawansekolah.utils.DevHost.getBackendBaseUrl()

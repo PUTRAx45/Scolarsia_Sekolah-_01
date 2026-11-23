@@ -1,0 +1,44 @@
+======================================================
+🔑 TESTING OPENROUTER API KEY CONNECTION
+======================================================
+📡 Mencoba menghubungi OpenRouter API dengan key: sk-or-v1...
+🤖 Model: openai/gpt-4o-mini
+✅ Key Auth Check Result: {
+  data: {
+    label: 'sk-or-v1-4a5...99b',
+    is_management_key: false,
+    is_provisioning_key: false,
+    limit: null,
+    limit_reset: null,
+    limit_remaining: null,
+    include_byok_in_limit: false,
+    budgets: [],
+    effective_budget: null,
+    usage: 0.0000033,
+    usage_daily: 0,
+    usage_weekly: 0,
+    usage_monthly: 0.0000033,
+    byok_usage: 0,
+    byok_usage_daily: 0,
+    byok_usage_weekly: 0,
+    byok_usage_monthly: 0,
+    is_free_tier: true,
+    expires_at: null,
+    creator_user_id: 'user_3KSnd3U36SsOQ5p6GUF6EAAxhQ4',
+    organization_id: null,
+    workspace_id: 'c29f3dc6-5544-5bef-99d8-7e24b932d9fd',
+    allowed_data_regions: [ 'global' ],
+    free_model_daily_requests: { used: 0, limit: 50, remaining: 50 },
+    rate_limit: {
+      requests: -1,
+      interval: '10s',
+      note: 'This field is deprecated and safe to ignore.'
+    }
+  }
+}
+
+💬 Mencoba test chat completion...
+✅ OpenRouter Chat Completion Response:
+   Reply: OK!
+======================================================
+

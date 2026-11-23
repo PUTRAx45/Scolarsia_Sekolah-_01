@@ -97,6 +97,36 @@ const limiter = rateLimit({
 
 app.use('/api/', limiter);
 
+// Warm-up Ollama Model
+async function warmUpOllama() {
+  const isOllama = (process.env.AI_PROVIDER || 'ollama').toLowerCase().trim() === 'ollama';
+  const shouldWarmup = process.env.WARMUP_OLLAMA !== '0';
+
+  if (isOllama && shouldWarmup) {
+    const baseUrl = (process.env.OLLAMA_BASE_URL || 'http://127.0.0.1:11434/v1/chat/completions').trim();
+    const model = (process.env.OLLAMA_MODEL || 'llama3.2:latest').trim();
+    const keepAlive = (process.env.OLLAMA_KEEP_ALIVE || '30m').trim();
+
+    console.log(`[Warmup] Memanaskan model Ollama ${model} di latar belakang...`);
+    const start = Date.now();
+    try {
+      await axios.post(baseUrl, {
+        model: model,
+        messages: [{ role: 'user', content: 'hello' }],
+        max_tokens: 1,
+        keep_alive: keepAlive
+      }, { timeout: 120000 });
+      const duration = Date.now() - start;
+      console.log(`[Warmup] Ollama selesai dipanaskan (${duration}ms).`);
+    } catch (e) {
+      const duration = Date.now() - start;
+      console.error(`[Warmup] Ollama gagal dipanaskan setelah ${duration}ms:`, e.message);
+    }
+  }
+}
+warmUpOllama();
+
+
 // Middleware Admin Verification
 async function verifyAdminToken(req, res, next) {
   const authHeader = req.headers.authorization || '';
@@ -192,7 +222,7 @@ async function checkAiReachable() {
     const baseUrl = (process.env.OLLAMA_BASE_URL || 'http://127.0.0.1:11434/v1/chat/completions').trim();
     const rootUrl = baseUrl.substring(0, baseUrl.indexOf('/v1'));
     try {
-      const res = await axios.get(rootUrl, { timeout: 2000 });
+      const res = await axios.get(rootUrl + '/api/tags', { timeout: 2000 });
       return res.status === 200 ? 'OK (Ollama Local UP)' : `HTTP ${res.status}`;
     } catch (e) {
       return `OFFLINE (Ollama Local: ${e.message})`;
@@ -213,12 +243,14 @@ async function callAiProvider(messages, temperature = 0.3, maxTokens = 300, resp
   if (provider === 'ollama') {
     const baseUrl = (process.env.OLLAMA_BASE_URL || 'http://127.0.0.1:11434/v1/chat/completions').trim();
     const model = (process.env.OLLAMA_MODEL || 'llama3.2:latest').trim();
+    const keepAlive = (process.env.OLLAMA_KEEP_ALIVE || '30m').trim();
 
     const payload = {
       model: model,
       messages: messages,
       temperature: temperature,
-      max_tokens: maxTokens
+      max_tokens: maxTokens,
+      keep_alive: keepAlive
     };
     if (responseFormat) payload.response_format = responseFormat;
 
@@ -236,7 +268,10 @@ async function callAiProvider(messages, temperature = 0.3, maxTokens = 300, resp
       const duration = Date.now() - startTime;
       console.error(`[AI Provider: Ollama Error] Failed after ${duration}ms:`, error.message);
 
-      if (fallback === 'openrouter') {
+      const apiKey = (process.env.OPENROUTER_API_KEY || process.env.AI_API_KEY || '').trim();
+      const hasValidKey = !isKeyPlaceholder(apiKey);
+
+      if (fallback === 'openrouter' && hasValidKey) {
         console.log('🔄 [AI Fallback] Falling back to OpenRouter Cloud API...');
         try {
           return await callOpenRouter(messages, temperature, maxTokens, responseFormat);
@@ -246,7 +281,7 @@ async function callAiProvider(messages, temperature = 0.3, maxTokens = 300, resp
       }
 
       if (error.code === 'ECONNREFUSED' || error.message.includes('ECONNREFUSED')) {
-        throw { statusCode: 503, code: 'AI_UNREACHABLE', publicMessage: 'Gagal terhubung ke server Ollama local (127.0.0.1:11434).' };
+        throw { statusCode: 502, code: 'AI_UNREACHABLE', publicMessage: `Ollama tidak berjalan di ${baseUrl}` };
       } else if (error.code === 'ETIMEDOUT' || error.message.includes('timeout')) {
         throw { statusCode: 503, code: 'AI_TIMEOUT', publicMessage: 'Koneksi ke server AI melebihi batas waktu (Timeout).' };
       }
@@ -423,7 +458,7 @@ Siswa: ${studentName} (${userRole.toUpperCase()})
 Mata Pelajaran: ${subject}
 Rata-rata Nilai: ${avgScore}
 
-Jawab dalam Bahasa Indonesia, singkat, ramah, 2-3 kalimat, berdasarkan data nilai yang diberikan.
+Jawaban Bahasa Indonesia, maksimal 3 kalimat, hanya berdasarkan data nilai yang diberikan, tanpa mengarang angka.
 `.trim();
 
     const userMessage = question || `Berikan rekomendasi belajar terbaru untuk ${studentName} pada mapel ${subject}.`;
@@ -627,8 +662,11 @@ app.post('/dev/seed-clear', async (req, res) => {
 });
 
 // 4. Endpoint Lightweight GET /health (Ultra-fast response for connection tests)
-app.get('/health', (req, res) => {
+app.get('/health', async (req, res) => {
   const pkg = require('./package.json');
+  const aiReachable = await checkAiReachable();
+  const provider = (process.env.AI_PROVIDER || 'ollama').toLowerCase().trim();
+  const model = provider === 'ollama' ? (process.env.OLLAMA_MODEL || 'llama3.2:latest') : (process.env.OPENROUTER_MODEL || 'openai/gpt-4o-mini');
   return res.json({
     status: 'UP',
     package: `${pkg.name}@${pkg.version}`,
@@ -654,6 +692,9 @@ app.get('/health/detail', async (req, res) => {
 
   const isHealthy = authStatus === 'OK' && firestoreStatus === 'OK';
   const pkg = require('./package.json');
+  const aiReachable = await checkAiReachable();
+  const provider = (process.env.AI_PROVIDER || 'ollama').toLowerCase().trim();
+  const model = provider === 'ollama' ? (process.env.OLLAMA_MODEL || 'llama3.2:latest') : (process.env.OPENROUTER_MODEL || 'openai/gpt-4o-mini');
 
   return res.status(isHealthy ? 200 : 503).json({
     status: isHealthy ? 'UP' : 'DEGRADED',
@@ -664,6 +705,9 @@ app.get('/health/detail', async (req, res) => {
     authHost: process.env.FIREBASE_AUTH_EMULATOR_HOST || '127.0.0.1:9099',
     firestoreHost: process.env.FIRESTORE_EMULATOR_HOST || '127.0.0.1:8081',
     timestamp: new Date().toISOString(),
+    aiProvider: provider,
+    aiModel: model,
+    aiReachable: aiReachable,
     services: {
       backend: 'UP',
       firebaseAuthEmulator: authStatus,

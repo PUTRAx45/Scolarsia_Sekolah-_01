@@ -13,7 +13,6 @@ class UserSessionManager(context: Context) {
     companion object {
         private const val PREF_NAME = "kawan_sekolah_session_prefs"
         private const val KEY_IS_LOGGED_IN = "is_logged_in"
-        private const val KEY_IS_DEMO_MODE = "is_demo_mode"
         private const val KEY_USER_NAME = "user_name"
         private const val KEY_USER_ROLE = "user_role"
     }
@@ -21,33 +20,18 @@ class UserSessionManager(context: Context) {
     fun saveSession(userName: String, role: UserRole) {
         prefs.edit().apply {
             putBoolean(KEY_IS_LOGGED_IN, true)
-            putBoolean(KEY_IS_DEMO_MODE, false)
             putString(KEY_USER_NAME, userName)
             putString(KEY_USER_ROLE, role.name)
-            apply()
+            commit() // Synchronous save
         }
-    }
-
-    fun saveDemoSession(userName: String, role: UserRole) {
-        prefs.edit().apply {
-            putBoolean(KEY_IS_LOGGED_IN, true)
-            putBoolean(KEY_IS_DEMO_MODE, true)
-            putString(KEY_USER_NAME, userName)
-            putString(KEY_USER_ROLE, role.name)
-            apply()
-        }
-    }
-
-    fun isDemoMode(): Boolean {
-        return prefs.getBoolean(KEY_IS_DEMO_MODE, false) || Firebase.auth.currentUser == null
     }
 
     fun isLoggedIn(): Boolean {
-        return prefs.getBoolean(KEY_IS_LOGGED_IN, false)
+        return prefs.getBoolean(KEY_IS_LOGGED_IN, false) && Firebase.auth.currentUser != null
     }
 
     fun getUserName(): String {
-        return prefs.getString(KEY_USER_NAME, "Ahmad Budi") ?: "Ahmad Budi"
+        return prefs.getString(KEY_USER_NAME, "Pengguna") ?: "Pengguna"
     }
 
     fun getUserRole(): UserRole {
@@ -62,7 +46,7 @@ class UserSessionManager(context: Context) {
     fun clearSession() {
         prefs.edit().apply {
             clear()
-            apply()
+            commit() // Synchronous clear
         }
     }
 }

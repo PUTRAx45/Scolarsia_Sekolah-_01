@@ -78,7 +78,6 @@ object FirebaseEmulatorHelper {
 
             Firebase.firestore.firestoreSettings = firestoreSettings {
                 setLocalCacheSettings(memoryCacheSettings { })
-                isSslEnabled = false
             }
             Firebase.firestore.useEmulator(targetHost, 8081)
 
@@ -90,8 +89,10 @@ object FirebaseEmulatorHelper {
             Log.i("ScolarsiaNet", "Auth -> $targetHost:9099, Firestore -> $targetHost:8081, Backend -> $targetHost:3000, emulatorApplied=true (Source: $hostSource)")
             Log.d("ScolarsiaNet", "✅ Firestore & Auth emulator terhubung ke $targetHost (Project: '$activeProjectId', Sumber: $hostSource)")
         } catch (e: Exception) {
-            Log.w("ScolarsiaNet", "⚠️ Firestore/Auth emulator setup exception di host '$targetHost': ${e.message}")
-            Log.i("ScolarsiaNet", "Auth -> $targetHost:9099, Firestore -> $targetHost:8081, Backend -> $targetHost:3000, emulatorApplied=$isEmulatorConfigured (Source: $hostSource)")
+            isEmulatorConfigured = false
+            Log.e("ScolarsiaNet", "❌ Firestore/Auth emulator setup exception di host '$targetHost': ${e.message}", e)
+            Log.i("ScolarsiaNet", "Auth -> $targetHost:9099, Firestore -> $targetHost:8081, Backend -> $targetHost:3000, emulatorApplied=false (Source: $hostSource)")
+            throw e
         }
     }
 }

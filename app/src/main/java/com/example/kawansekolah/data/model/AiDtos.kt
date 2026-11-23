@@ -12,7 +12,7 @@ data class ChatHistoryDto(
 )
 
 data class AiInsightRequest(
-    val mode: String = "AUTO_INSIGHT", // "AUTO_INSIGHT" or "CHAT"
+    val mode: String = "AUTO_INSIGHT", // "INSIGHT_AUTO" or "CHAT"
     val studentId: String = "",
     val studentName: String = "",
     val userRole: String = "SISWA",

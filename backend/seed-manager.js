@@ -16,28 +16,26 @@ if (!admin.apps.length) {
 const auth = admin.auth();
 const db = admin.firestore();
 
-const DUMMY_PASS = '1g2u3r4u';
-
 const DUMMY_USERS = [
-  { uid: 'admin_01', email: 'admin12@scolarsia.ac.id', name: 'Arif Setiawan, S.Kom.', role: 'admin' },
-  { uid: 'guru_01', email: 'guru12@scolarsia.ac.id', name: 'Budi Santoso, S.Pd.', role: 'guru', classes: ['9-A', '9-B'] },
-  { uid: 'wali_01', email: 'walikelas12@scolarsia.ac.id', name: 'Siti Aminah, M.Pd.', role: 'wali_kelas', classes: ['9-A'] },
+  { uid: 'admin_01', email: 'admin12@scolarsia.ac.id', name: 'Arif Setiawan, S.Kom.', role: 'admin', password: '1a2d3m4i5n' },
+  { uid: 'guru_01', email: 'guru12@scolarsia.ac.id', name: 'Budi Santoso, S.Pd.', role: 'guru', classes: ['9-A', '9-B'], password: '1g2u3r4u' },
+  { uid: 'wali_01', email: 'walikelas12@scolarsia.ac.id', name: 'Siti Aminah, M.Pd.', role: 'wali_kelas', classes: ['9-A'], password: '1w2a3l4i' },
 
   // 6 Siswa Kelas 9-A
-  { uid: 'siswa_01', email: '09231@scolarsia.ac.id', name: 'Ahmad Budi', role: 'siswa', nis: '09231', class: '9-A' },
-  { uid: 'siswa_02', email: '09232@scolarsia.ac.id', name: 'Siti Rahma', role: 'siswa', nis: '09232', class: '9-A' },
-  { uid: 'siswa_03', email: '09233@scolarsia.ac.id', name: 'Dewi Lestari', role: 'siswa', nis: '09233', class: '9-A' },
-  { uid: 'siswa_04', email: '09234@scolarsia.ac.id', name: 'Fajar Pratama', role: 'siswa', nis: '09234', class: '9-A' },
-  { uid: 'siswa_05', email: '09235@scolarsia.ac.id', name: 'Bima Saputra', role: 'siswa', nis: '09235', class: '9-A' },
-  { uid: 'siswa_06', email: '09236@scolarsia.ac.id', name: 'Aulia Putri', role: 'siswa', nis: '09236', class: '9-A' },
+  { uid: 'siswa_01', email: 'siswa01@scolarsia.ac.id', name: 'Ahmad Budi', role: 'siswa', nis: '09231', class: '9-A', password: '1s2i3w4a' },
+  { uid: 'siswa_02', email: 'siswa02@scolarsia.ac.id', name: 'Siti Rahma', role: 'siswa', nis: '09232', class: '9-A', password: '1s2i3w4a' },
+  { uid: 'siswa_03', email: 'siswa03@scolarsia.ac.id', name: 'Dewi Lestari', role: 'siswa', nis: '09233', class: '9-A', password: '1s2i3w4a' },
+  { uid: 'siswa_04', email: 'siswa04@scolarsia.ac.id', name: 'Fajar Pratama', role: 'siswa', nis: '09234', class: '9-A', password: '1s2i3w4a' },
+  { uid: 'siswa_05', email: 'siswa05@scolarsia.ac.id', name: 'Bima Saputra', role: 'siswa', nis: '09235', class: '9-A', password: '1s2i3w4a' },
+  { uid: 'siswa_06', email: 'siswa06@scolarsia.ac.id', name: 'Aulia Putri', role: 'siswa', nis: '09236', class: '9-A', password: '1s2i3w4a' },
 
   // 6 Orang Tua
-  { uid: 'ortu_01', email: 'ortu_09231@scolarsia.ac.id', name: 'Bapak Ahmad', role: 'orang_tua', studentId: 'siswa_01' },
-  { uid: 'ortu_02', email: 'ortu_09232@scolarsia.ac.id', name: 'Ibu Rahma', role: 'orang_tua', studentId: 'siswa_02' },
-  { uid: 'ortu_03', email: 'ortu_09233@scolarsia.ac.id', name: 'Bapak Lestari', role: 'orang_tua', studentId: 'siswa_03' },
-  { uid: 'ortu_04', email: 'ortu_09234@scolarsia.ac.id', name: 'Bapak Pratama', role: 'orang_tua', studentId: 'siswa_04' },
-  { uid: 'ortu_05', email: 'ortu_09235@scolarsia.ac.id', name: 'Ibu Saputra', role: 'orang_tua', studentId: 'siswa_05' },
-  { uid: 'ortu_06', email: 'ortu_09236@scolarsia.ac.id', name: 'Ibu Putri', role: 'orang_tua', studentId: 'siswa_06' }
+  { uid: 'ortu_01', email: 'ortu_siswa01@scolarsia.ac.id', name: 'Bapak Ahmad', role: 'orang_tua', studentId: 'siswa_01', password: '1o2r3a4n5g' },
+  { uid: 'ortu_02', email: 'ortu_siswa02@scolarsia.ac.id', name: 'Ibu Rahma', role: 'orang_tua', studentId: 'siswa_02', password: '1o2r3a4n5g' },
+  { uid: 'ortu_03', email: 'ortu_siswa03@scolarsia.ac.id', name: 'Bapak Lestari', role: 'orang_tua', studentId: 'siswa_03', password: '1o2r3a4n5g' },
+  { uid: 'ortu_04', email: 'ortu_siswa04@scolarsia.ac.id', name: 'Bapak Pratama', role: 'orang_tua', studentId: 'siswa_04', password: '1o2r3a4n5g' },
+  { uid: 'ortu_05', email: 'ortu_siswa05@scolarsia.ac.id', name: 'Ibu Saputra', role: 'orang_tua', studentId: 'siswa_05', password: '1o2r3a4n5g' },
+  { uid: 'ortu_06', email: 'ortu_siswa06@scolarsia.ac.id', name: 'Ibu Putri', role: 'orang_tua', studentId: 'siswa_06', password: '1o2r3a4n5g' }
 ];
 
 async function seedData() {
@@ -68,7 +66,7 @@ async function seedData() {
         await auth.getUser(u.uid);
         await auth.updateUser(u.uid, {
           email: u.email,
-          password: DUMMY_PASS,
+          password: u.password,
           displayName: u.name,
           disabled: false
         });
@@ -77,7 +75,7 @@ async function seedData() {
           await auth.createUser({
             uid: u.uid,
             email: u.email,
-            password: DUMMY_PASS,
+            password: u.password,
             displayName: u.name,
             disabled: false
           });

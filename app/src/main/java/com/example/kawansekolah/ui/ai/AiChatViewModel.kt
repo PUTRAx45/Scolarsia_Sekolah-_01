@@ -161,12 +161,12 @@ class AiChatViewModel : ViewModel() {
                 )
 
                 val responseText = try {
-                    withTimeout(30_000L) {
+                    withTimeout(90_000L) {
                         val res = AiRepository.fetchAiInsight(req)
                         res.data?.aiRecommendation ?: "Gagal mendapatkan respon AI."
                     }
                 } catch (e: TimeoutCancellationException) {
-                    "⏳ Waktu permintaan AI melebihi 30 detik (Timeout). Silakan coba beberapa saat lagi."
+                    "⏳ Waktu permintaan AI melebihi 90 detik (Timeout). Silakan coba beberapa saat lagi."
                 } catch (e: Exception) {
                     "⚠️ Gagal terhubung ke server AI Backend (http://10.0.2.2:3000): ${e.message ?: "Server offline"}"
                 }

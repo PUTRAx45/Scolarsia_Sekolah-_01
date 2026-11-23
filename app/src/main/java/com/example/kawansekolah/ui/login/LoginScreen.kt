@@ -1,8 +1,5 @@
 package com.example.kawansekolah.ui.login
 
-import android.content.Intent
-import android.os.Process
-import android.widget.Toast
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -35,25 +32,20 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.zIndex
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.kawansekolah.BuildConfig
-import com.example.kawansekolah.FirebaseEmulatorHelper
 import com.example.kawansekolah.R
 import com.example.kawansekolah.data.model.User
 import com.example.kawansekolah.data.model.UserRole
-import com.example.kawansekolah.ui.theme.PrimaryBlue
 import com.example.kawansekolah.ui.theme.TextMuted
 import com.example.kawansekolah.utils.DevHost
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun LoginScreen(
     initialRole: UserRole = UserRole.SISWA,
     onBackToRoleSelection: () -> Unit = {},
-    onLoginSuccessUser: (User) -> Unit,
-    onDemoLoginSuccess: (String, UserRole) -> Unit = { _, _ -> }
+    onLoginSuccessUser: (User) -> Unit
 ) {
     val authViewModel: AuthViewModel = viewModel()
     val authUiState by authViewModel.uiState.collectAsState()
@@ -73,10 +65,6 @@ fun LoginScreen(
 
     // Dialog Konfigurasi Alamat Server (Debug Mode Only)
     var showServerConfigDialog by remember { mutableStateOf(false) }
-    var showDiagnosticsDialog by remember { mutableStateOf(false) }
-    var serverHostInput by remember { mutableStateOf(DevHost.getHost(context)) }
-    var testResultMsg by remember { mutableStateOf("") }
-    var isTestingConnection by remember { mutableStateOf(false) }
 
     val roleTitle = when (selectedRole) {
         UserRole.GURU -> "Guru"
@@ -100,15 +88,7 @@ fun LoginScreen(
         UserRole.ADMIN -> "admin@sekolah.sch.id"
     }
 
-    val passwordPlaceholder = "1234567"
-
-    val defaultDemoEmail = when (selectedRole) {
-        UserRole.GURU -> "guru12@scolarsia.ac.id"
-        UserRole.WALI_KELAS -> "walikelas12@scolarsia.ac.id"
-        UserRole.SISWA -> "siswa12@scolarsia.ac.id"
-        UserRole.ORANG_TUA -> "orangtua12@scolarsia.ac.id"
-        UserRole.ADMIN -> "admin12@scolarsia.ac.id"
-    }
+    val passwordPlaceholder = "••••••••"
 
     LaunchedEffect(authUiState) {
         when (val state = authUiState) {
@@ -306,8 +286,14 @@ fun LoginScreen(
                         errorMessage = "Alamat server belum diatur. Klik ikon roda gigi ⚙️ di pojok kanan atas untuk memasukkan IP Wi-Fi laptop Anda."
                         return@Button
                     }
-                    val inputEmail = identifierInput.ifBlank { defaultDemoEmail }
-                    val inputPass = passwordInput.ifBlank { "1g2u3r4u" }
+                    val inputEmail = identifierInput.trim()
+                    val inputPass = passwordInput.trim()
+
+                    if (inputEmail.isBlank() || inputPass.isBlank()) {
+                        errorMessage = "Email / NISN dan kata sandi tidak boleh kosong."
+                        return@Button
+                    }
+
                     authViewModel.login(inputEmail, inputPass, selectedRole, context)
                 },
                 modifier = Modifier
@@ -348,12 +334,10 @@ fun LoginScreen(
             Spacer(modifier = Modifier.height(80.dp))
         }
 
-        // Gear Icon Button at Top Right (Debug Only) - Placed AFTER Column with zIndex(10f) so it receives touch events
+        // Gear Icon Button at Top Right (Debug Only)
         if (BuildConfig.DEBUG) {
             IconButton(
                 onClick = {
-                    serverHostInput = DevHost.getHost(context)
-                    testResultMsg = ""
                     showServerConfigDialog = true
                 },
                 modifier = Modifier
@@ -373,173 +357,8 @@ fun LoginScreen(
 
     // Dialog Konfigurasi & Tes Alamat Server 3 Layanan
     if (showServerConfigDialog) {
-        AlertDialog(
-            onDismissRequest = { showServerConfigDialog = false },
-            title = {
-                Text("Konfigurasi Alamat Server", fontWeight = FontWeight.Bold, fontSize = 16.sp)
-            },
-            text = {
-                Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                    Text(
-                        text = "Masukkan IP Wi-Fi laptop (hanya angka & titik, misal: 192.168.x.x) atau 10.0.2.2 untuk Android Emulator:",
-                        fontSize = 12.sp,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-
-                    OutlinedTextField(
-                        value = serverHostInput,
-                        onValueChange = { input ->
-                            serverHostInput = input.filter { c -> c.isDigit() || c == '.' }
-                        },
-                        label = { Text("IP Laptop / Host") },
-                        placeholder = { Text("192.168.x.x") },
-                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                        singleLine = true,
-                        modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(12.dp)
-                    )
-
-                    if (testResultMsg.isNotBlank()) {
-                        Surface(
-                            shape = RoundedCornerShape(10.dp),
-                            color = if (testResultMsg.contains("✅")) Color(0xFFDCFCE7) else MaterialTheme.colorScheme.errorContainer,
-                            modifier = Modifier.fillMaxWidth()
-                        ) {
-                            Text(
-                                text = testResultMsg,
-                                fontSize = 11.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = if (testResultMsg.contains("✅")) Color(0xFF166534) else MaterialTheme.colorScheme.error,
-                                modifier = Modifier.padding(10.dp)
-                            )
-                        }
-                    }
-
-                    OutlinedButton(
-                        onClick = {
-                            isTestingConnection = true
-                            testResultMsg = "⏳ Memeriksa 3 layanan (Backend 3000, Auth 9099, Firestore 8081)..."
-                            coroutineScope.launch {
-                                val targetHost = serverHostInput.trim().ifBlank { "10.0.2.2" }
-
-                                val resMsg = withContext(Dispatchers.IO) {
-                                    fun testSocket(host: String, port: Int, timeoutMs: Int = 3000): String {
-                                        val start = System.currentTimeMillis()
-                                        return try {
-                                            val s = java.net.Socket()
-                                            s.connect(java.net.InetSocketAddress(host, port), timeoutMs)
-                                            s.close()
-                                            val duration = System.currentTimeMillis() - start
-                                            "OK (${duration}ms)"
-                                        } catch (e: java.net.SocketTimeoutException) {
-                                            "Timeout (${timeoutMs / 1000}s)"
-                                        } catch (e: java.net.ConnectException) {
-                                            "Ditolak (Port $port)"
-                                        } catch (e: java.net.UnknownHostException) {
-                                            "Host tidak ditemukan ($host)"
-                                        } catch (e: Exception) {
-                                            "Gagal (${e.message})"
-                                        }
-                                    }
-
-                                    fun testBackendHttp(host: String): String {
-                                        val timeoutMs = 8000
-                                        for (attempt in 1..2) {
-                                            val start = System.currentTimeMillis()
-                                            try {
-                                                val url = java.net.URL("http://$host:3000/health")
-                                                val conn = url.openConnection() as java.net.HttpURLConnection
-                                                conn.connectTimeout = timeoutMs
-                                                conn.readTimeout = timeoutMs
-                                                conn.connect()
-                                                val code = conn.responseCode
-                                                val duration = System.currentTimeMillis() - start
-                                                return if (code == 200) "OK (${duration}ms)" else "HTTP $code (${duration}ms)"
-                                            } catch (e: java.net.SocketTimeoutException) {
-                                                if (attempt == 2) return "Timeout (8s)"
-                                            } catch (e: java.net.ConnectException) {
-                                                if (attempt == 2) return "Ditolak (Port 3000)"
-                                            } catch (e: java.net.UnknownHostException) {
-                                                return "Host tidak ditemukan ($host)"
-                                            } catch (e: Exception) {
-                                                if (attempt == 2) return "Gagal (${e.message})"
-                                            }
-                                        }
-                                        return "Timeout (8s)"
-                                    }
-
-                                    val backendRes = testBackendHttp(targetHost)
-                                    val authRes = testSocket(targetHost, 9099, 3000)
-                                    val firestoreRes = testSocket(targetHost, 8081, 3000)
-
-                                    val isAllOk = backendRes.startsWith("OK") && authRes.startsWith("OK") && firestoreRes.startsWith("OK")
-
-                                    if (isAllOk) {
-                                        "✅ SEMUA LAYANAN TERKONEKSI (OK):\n• Backend (3000): $backendRes\n• Auth (9099): $authRes\n• Firestore (8081): $firestoreRes"
-                                    } else if (!backendRes.startsWith("OK") && !authRes.startsWith("OK") && !firestoreRes.startsWith("OK")) {
-                                        "⚠️ SEMUA LAYANAN GAGAL:\nIP laptop kemungkinan berubah (saat ini: $targetHost).\nJalankan 'tampil-ip.bat' di laptop lalu samakan alamat IP di sini.\n\n• Backend (3000): $backendRes\n• Auth (9099): $authRes\n• Firestore (8081): $firestoreRes"
-                                    } else {
-                                        "❌ STATUS KONEKSI LAYANAN:\n• Backend API (3000): $backendRes\n• Auth (9099): $authRes\n• Firestore (8081): $firestoreRes"
-                                    }
-                                }
-
-                                testResultMsg = resMsg
-                                isTestingConnection = false
-                            }
-                        },
-                        enabled = !isTestingConnection,
-                        modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(10.dp)
-                    ) {
-                        Text(if (isTestingConnection) "Memeriksa..." else "Tes Koneksi (3 Layanan)", fontSize = 13.sp)
-                    }
-
-                    OutlinedButton(
-                        onClick = {
-                            showDiagnosticsDialog = true
-                        },
-                        modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(10.dp)
-                    ) {
-                        Text("Diagnostik Lengkap (8 Cek HP)", fontSize = 13.sp, fontWeight = FontWeight.Bold)
-                    }
-                }
-            },
-            confirmButton = {
-                Button(
-                    onClick = {
-                        val cleanHost = serverHostInput.trim()
-                        val oldHost = DevHost.getHost(context)
-                        DevHost.saveDynamicHost(context, cleanHost)
-                        errorMessage = ""
-
-                        if (oldHost.isNotBlank() && oldHost != cleanHost) {
-                            Toast.makeText(context, "✅ Alamat server disimpan ($cleanHost). Aplikasi akan restart...", Toast.LENGTH_LONG).show()
-                            val intent = context.packageManager.getLaunchIntentForPackage(context.packageName)
-                            intent?.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK)
-                            context.startActivity(intent)
-                            Process.killProcess(Process.myPid())
-                        } else {
-                            FirebaseEmulatorHelper.setupEmulators(context, true, cleanHost)
-                            showServerConfigDialog = false
-                        }
-                    },
-                    shape = RoundedCornerShape(10.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = PrimaryBlue)
-                ) {
-                    Text("Simpan & Terapkan", fontWeight = FontWeight.Bold)
-                }
-            },
-            dismissButton = {
-                TextButton(onClick = { showServerConfigDialog = false }) {
-                    Text("Batal")
-                }
-            },
-            shape = RoundedCornerShape(20.dp)
+        ServerConfigDialog(
+            onDismiss = { showServerConfigDialog = false }
         )
-    }
-
-    if (showDiagnosticsDialog) {
-        ConnectionDiagnosticsDialog(onDismiss = { showDiagnosticsDialog = false })
     }
 }

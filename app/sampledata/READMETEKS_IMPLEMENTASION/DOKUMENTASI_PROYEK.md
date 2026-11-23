@@ -1,73 +1,83 @@
-# Dokumentasi & Panduan Terpusat Proyek Scolarsia
+# Scolarsia Project Documentation
 
-Seluruh berkas catatan, panduan, dan dokumentasi proyek disimpan secara terpusat di direktori ini (`app/sampledata/READMETEKS_IMPLEMENTASION/`).
-
----
-
-## 📌 Ringkasan Arsitektur Proyek Scolarsia
-
-1. **Aplikasi Android (`app/`)**:
-   - Bahasa & Framework: Kotlin, Jetpack Compose, Material 3, Navigation Compose.
-   - 5 Peran Pengguna: **Admin**, **Guru**, **Wali Kelas**, **Siswa**, **Orang Tua**.
-   - Sistem Warna: Primary Blue (`#1C64F2`), Soft Blue (`#EBF2FE`), Navy Container (`#15325B`), Dark Text (`#111928`), Card Border (`#E5E7EB`).
-   - Mode Terang & Gelap (*Dark Mode*) beradaptasi dinamis menggunakan token `MaterialTheme.colorScheme`.
-   - Skala Tipografi: `.sp` dinamis mengikuti *System Font Scale* perangkat HP.
-
-2. **Backend API & AI Agent (`backend/`)**:
-   - Framework: Express.js (Node.js) di port `3000`.
-   - AI Agent: Agent Hermes / OpenRouter API (`openai/gpt-4o-mini`).
-   - Moderasi & Deteksi Salam: Memilih balasan salam murni dan menyaring bahasa kasar / pertanyaan di luar kurikulum.
-
-3. **Firebase Local Emulator Suite & Docker (`C:\firebase-docker`)**:
-   - Firebase Auth Emulator: Port `9099` (Host `0.0.0.0`).
-   - Cloud Firestore Emulator: Port `8081` (Host `0.0.0.0`).
-   - Firebase UI Dashboard: Port `4000` (Host `0.0.0.0`).
-   - Data Persistence: Menyimpan seluruh data Auth & Firestore di `./emulator-data` saat `docker compose down`.
+Dokumentasi dan panduan teknis proyek Scolarsia. 
 
 ---
 
-## 🔑 Kredensial Uji Dummy (Kata Sandi Semua Akun: `1g2u3r4u`)
+## 📌 Architecture
 
-- **Admin:** `admin12@scolarsia.ac.id`
-- **Guru:** `guru12@scolarsia.ac.id`
-- **Wali Kelas:** `walikelas12@scolarsia.ac.id`
-- **Siswa:** `09231@scolarsia.ac.id` s/d `09236@scolarsia.ac.id`
-- **Orang Tua:** `ortu_09231@scolarsia.ac.id` s/d `ortu_09236@scolarsia.ac.id`
+### 1. Android App (`app/`)
+- **Tech Stack:** Kotlin, Jetpack Compose, Material 3, Navigation Compose.
+- **Roles:** Admin, Guru, Wali Kelas, Siswa, Orang Tua.
+- **UI/UX:** Dynamic Dark Mode (`MaterialTheme.colorScheme`), scalable typography (`.sp`).
 
----
+### 2. Backend API (`backend/`)
+- **Tech Stack:** Node.js, Express.js (Port 3000).
+- **AI Integration:** OpenRouter API (`openai/gpt-4o-mini`).
+- **Features:** Prompt moderation, greeting detection, curriculum filtering.
 
-## 🗺️ ROADMAP MENUJU PRODUKSI & DEPLOYMENT
-
-1. **Langkah 1: Selesaikan Lokal (Local Completion & Verification)**
-   - Login 5 peran di HP Fisik (Admin, Guru, Wali Kelas, Siswa, Orang Tua).
-   - Penguncian peran (1 akun = 1 peran) & isolasi navigasi.
-   - Fitur AI Analytics & Chat berjalan lancar.
-
-2. **Langkah 2: Uji Aturan Keamanan (Security Rules)**
-   - Menjalankan `npm run test-rules` di folder `backend/` untuk menguji isolasi hak akses Firestore per peran.
-
-3. **Langkah 3: Firebase Cloud Production & Akun Admin Awal**
-   - Membuat project Firebase Cloud asli di Firebase Console.
-   - Mengunduh `google-services.json` produksi dan mendaftarkan akun Admin pertama.
-
-4. **Langkah 4: Deploy Backend AI ke Cloud Hosting (HTTPS & Secrets)**
-   - Mempublikasikan service `backend/` ke platform cloud (Render / Railway / Koyeb) dengan variabel lingkungan `OPENROUTER_API_KEY` & `FIREBASE_SERVICE_ACCOUNT_JSON`.
-
-5. **Langkah 5: Build Release APK**
-   - Membangun APK varian `release` (tanpa dialog IP server, tanpa dev seed, tanpa cleartext HTTP).
-
-6. **Langkah 6: Kebijakan Privasi & Rilis Play Store**
-   - Menyusun Kebijakan Privasi (*Privacy Policy*) perlindungan data siswa & sekolah sebelum publikasi di Google Play Store.
+### 3. Firebase & Docker (`C:\firebase-docker`)
+- **Auth Emulator:** Port 9099
+- **Firestore Emulator:** Port 8081
+- **Firebase UI:** Port 4000
+- **Data Persistence:** `./emulator-data` (saved automatically on `docker compose down`)
 
 ---
 
-## 🚀 Perintah Pengembang (NPM Scripts)
+## 🔑 Test Credentials
+**Password for guru accounts:** `1g2u3r4u`
+**Password for admin accounts:** `1a2d3m4i5n`
+**Password for Wali kelas accounts:** `1w2a3l4i`
+**Password for siswa accounts:** `1s2i3w4a`
+**Password for Orang tua accounts:** `1o2r3a4n5g`
 
-Di folder `backend/`:
-- `npm start`: Menjalankan server backend Express di port 3000.
-- `npm run cek`: Menjalankan 17 sub-cek diagnosis terpusat server & emulator.
-- `npm run seed`: Mengisi data dummy ke emulator Auth & Firestore.
-- `npm run seed:clear`: Menghapus **hanya** data dummy (`isDummy === true`).
-- `npm run seed:reset`: Menghapus data dummy lalu mengisinya kembali.
-- `npm run test-rules`: Menguji aturan `firestore.rules`.
-- `npm run test-ai`: Menguji endpoint AI Chat & Insight.
+
+| Role | Email |
+|---|---|
+| Admin | admin12@scolarsia.ac.id |
+| Guru | guru12@scolarsia.ac.id |
+| Wali Kelas | walikelas12@scolarsia.ac.id |
+| Siswa | siswa01@scolarsia.ac.id |
+| Orang Tua | ortu_siswa01@scolarsia.ac.id |
+
+*(Terdapat total 6 siswa dan 6 orang tua dengan pola email yang sama).*
+
+---
+
+## 🚀 Development Commands
+
+Jalankan perintah ini di dalam folder `backend/`:
+
+```bash
+# Start backend server (Port 3000)
+npm start
+
+# Run system health and emulator checks
+npm run cek
+
+# Seed dummy data into Firebase Emulator
+npm run seed
+
+# Reset (clear and re-seed) dummy data
+npm run seed:reset
+
+# Clear only dummy data
+npm run seed:clear
+
+# Test Firestore security rules
+npm run test-rules
+
+# Test AI endpoints (Chat & Insight)
+npm run test-ai
+```
+
+---
+
+## 🗺️ Deployment Roadmap
+
+1. **Local Testing:** Pastikan 5 role bisa login di HP fisik dan fitur AI berjalan normal.
+2. **Security Check:** Jalankan `npm run test-rules` untuk menguji keamanan database Firestore.
+3. **Firebase Setup:** Buat project Firebase asli (Production), unduh `google-services.json`, lalu daftarkan akun Admin pertama.
+4. **Backend Deploy:** Deploy folder `backend/` ke cloud hosting (Render / Railway). Jangan lupa set environment variables: `OPENROUTER_API_KEY` & `FIREBASE_SERVICE_ACCOUNT_JSON`.
+5. **Release Build:** Build APK versi rilis (tanpa IP config dialog & http cleartext).
+6. **Publishing:** Siapkan Privacy Policy untuk rilis ke Google Play Store.
