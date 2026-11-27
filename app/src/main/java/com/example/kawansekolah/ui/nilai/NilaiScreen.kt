@@ -487,7 +487,7 @@ fun SubjectCardItem(
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                     Spacer(modifier = Modifier.height(2.dp))
-                    if (weightedScore != null) {
+                    if (weightedScore != null && !weightedScore.isNaN() && !weightedScore.isInfinite()) {
                         Text(
                             text = String.format(java.util.Locale.US, "%.1f", weightedScore),
                             fontSize = 20.sp,
@@ -621,7 +621,7 @@ fun SubjectCardItem(
                                         )
                                     }
 
-                                    if (score != null) {
+                                    if (score != null && !score.isNaN() && !score.isInfinite()) {
                                         Text(
                                             text = "${score.toInt()}",
                                             fontSize = 16.sp,

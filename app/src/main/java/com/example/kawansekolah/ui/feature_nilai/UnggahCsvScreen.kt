@@ -21,7 +21,11 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.kawansekolah.data.model.Kelas
+import com.example.kawansekolah.data.model.Kompetensi
+import com.example.kawansekolah.data.model.Periode
 import com.example.kawansekolah.data.model.Score
+import com.example.kawansekolah.data.model.SubjectEntity
 import com.example.kawansekolah.data.repository.ScoreRepository
 import com.example.kawansekolah.domain.AccessPolicy
 import com.example.kawansekolah.domain.ScoreValidator
@@ -41,12 +45,17 @@ fun UnggahCsvScreen(
     val subjectsList = remember { ScoreRepository.getDummySubjectsList() }
     val periodeList = remember { ScoreRepository.getDummyPeriodeList() }
 
-    var selectedClass by remember { mutableStateOf(kelasList.first()) }
-    var selectedSubject by remember { mutableStateOf(subjectsList.first()) }
-    var selectedPeriode by remember { mutableStateOf(periodeList.first()) }
+    val defaultClass = Kelas("cls_9a", "9-A", "SMP")
+    val defaultSubject = SubjectEntity("subj_matematika_9", "guru_smp_01", "Matematika", "SMP", 9)
+    val defaultPeriode = Periode("per_1", "Semester Ganjil 2026/2027", "Ganjil", "2026/2027")
+    val defaultKompetensi = Kompetensi("komp_1", "subj_matematika_9", "3.1", "Aritmatika")
+
+    var selectedClass by remember { mutableStateOf(kelasList.firstOrNull() ?: defaultClass) }
+    var selectedSubject by remember { mutableStateOf(subjectsList.firstOrNull() ?: defaultSubject) }
+    var selectedPeriode by remember { mutableStateOf(periodeList.firstOrNull() ?: defaultPeriode) }
 
     val kompetensiList = remember(selectedSubject.id) { ScoreRepository.getDummyKompetensiList(selectedSubject.id) }
-    var selectedKompetensi by remember { mutableStateOf(kompetensiList.first()) }
+    var selectedKompetensi by remember { mutableStateOf(kompetensiList.firstOrNull() ?: defaultKompetensi) }
 
     var expandedClass by remember { mutableStateOf(false) }
     var expandedSubject by remember { mutableStateOf(false) }
@@ -64,9 +73,15 @@ fun UnggahCsvScreen(
         if (uri != null) {
             try {
                 context.contentResolver.openInputStream(uri)?.use { stream ->
-                    val content = stream.bufferedReader().use { it.readText() }
-                    csvInputText = content
+                    val reader = stream.bufferedReader()
+                    val charArray = CharArray(100000)
+                    val count = reader.read(charArray, 0, 100000)
+                    if (count > 0) {
+                        csvInputText = String(charArray, 0, count)
+                    }
                 }
+            } catch (_: OutOfMemoryError) {
+                csvInputText = "Error: Ukuran file terlalu besar."
             } catch (_: Exception) {
             }
         }
@@ -106,6 +121,33 @@ fun UnggahCsvScreen(
             contentPadding = PaddingValues(16.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
+            if (!canUpload) {
+                item {
+                    Surface(
+                        shape = RoundedCornerShape(12.dp),
+                        color = MaterialTheme.colorScheme.errorContainer,
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Column(modifier = Modifier.padding(16.dp)) {
+                            Text(
+                                text = "⚠️ Akses Ditolak: Hanya Guru Mapel bersangkutan yang dapat mengunggah file nilai.",
+                                color = MaterialTheme.colorScheme.onErrorContainer,
+                                fontSize = 13.sp,
+                                fontWeight = FontWeight.Bold
+                            )
+                            Spacer(modifier = Modifier.height(12.dp))
+                            OutlinedButton(
+                                onClick = onBack,
+                                modifier = Modifier.fillMaxWidth(),
+                                shape = RoundedCornerShape(12.dp)
+                            ) {
+                                Text("Kembali ke Beranda")
+                            }
+                        }
+                    }
+                }
+            }
+
             item {
                 Card(
                     modifier = Modifier.fillMaxWidth(),
@@ -115,7 +157,6 @@ fun UnggahCsvScreen(
                     Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                         Text("Parameter Target Penilaian", fontWeight = FontWeight.Bold, fontSize = 14.sp)
 
-                        // Dropdown Kelas
                         ExposedDropdownMenuBox(
                             expanded = expandedClass,
                             onExpandedChange = { expandedClass = !expandedClass }
@@ -145,7 +186,6 @@ fun UnggahCsvScreen(
                             }
                         }
 
-                        // Dropdown Mapel
                         ExposedDropdownMenuBox(
                             expanded = expandedSubject,
                             onExpandedChange = { expandedSubject = !expandedSubject }
@@ -175,7 +215,6 @@ fun UnggahCsvScreen(
                             }
                         }
 
-                        // Dropdown Periode
                         ExposedDropdownMenuBox(
                             expanded = expandedPeriode,
                             onExpandedChange = { expandedPeriode = !expandedPeriode }
@@ -205,7 +244,6 @@ fun UnggahCsvScreen(
                             }
                         }
 
-                        // Dropdown Kompetensi
                         ExposedDropdownMenuBox(
                             expanded = expandedKompetensi,
                             onExpandedChange = { expandedKompetensi = !expandedKompetensi }

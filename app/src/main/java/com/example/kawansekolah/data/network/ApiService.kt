@@ -29,7 +29,6 @@ interface ApiService {
                 level = if (BuildConfig.DEBUG) HttpLoggingInterceptor.Level.BODY else HttpLoggingInterceptor.Level.NONE
             }
 
-            // Retry Interceptor untuk menangani serverless/hosting cold-start
             val retryInterceptor = Interceptor { chain ->
                 val request = chain.request()
                 var response: Response? = null
@@ -41,7 +40,6 @@ interface ApiService {
                     exception = e
                 }
 
-                // Coba ulang 1x jika koneksi pertama gagal (misal serverless cold start)
                 if (response == null || (!response.isSuccessful && response.code >= 500)) {
                     try {
                         response?.close()
@@ -59,15 +57,23 @@ interface ApiService {
 
             val dynamicHostInterceptor = Interceptor { chain ->
                 var request = chain.request()
-                val currentBaseUrl = com.example.kawansekolah.utils.DevHost.getBackendBaseUrl().trimEnd('/')
-                
-                // Construct new URL dynamically based on latest DevHost IP
-                val urlBuilder = request.url.newBuilder()
-                    .scheme(if (currentBaseUrl.startsWith("https")) "https" else "http")
-                    .host(currentBaseUrl.replace("https://", "").replace("http://", "").substringBefore(":"))
-                    .port(currentBaseUrl.substringAfterLast(":", "80").substringBefore("/").toIntOrNull() ?: 80)
-                    
-                request = request.newBuilder().url(urlBuilder.build()).build()
+                try {
+                    val currentBaseUrl = com.example.kawansekolah.utils.DevHost.getBackendBaseUrl().trimEnd('/')
+                    if (currentBaseUrl.isNotBlank() && currentBaseUrl != "http://localhost/") {
+                        val hostClean = currentBaseUrl.replace("https://", "").replace("http://", "").substringBefore(":").substringBefore("/")
+                        val portClean = currentBaseUrl.substringAfterLast(":", "80").substringBefore("/").toIntOrNull() ?: 80
+                        val schemeClean = if (currentBaseUrl.startsWith("https")) "https" else "http"
+
+                        if (hostClean.isNotBlank()) {
+                            val urlBuilder = request.url.newBuilder()
+                                .scheme(schemeClean)
+                                .host(hostClean)
+                                .port(portClean)
+                            request = request.newBuilder().url(urlBuilder.build()).build()
+                        }
+                    }
+                } catch (_: Exception) {
+                }
                 chain.proceed(request)
             }
 

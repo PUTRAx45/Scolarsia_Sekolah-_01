@@ -116,10 +116,17 @@ class AcademicViewModel : ViewModel() {
                         currentSubject = selectedDetail?.subject ?: subjectEntities.firstOrNull()
                     )
                 }
+            } catch (_: TimeoutCancellationException) {
+                val fallbackList = _uiState.value.subjectDetailsList
+                _uiState.value = _uiState.value.copy(
+                    isLoading = false,
+                    errorMessage = if (fallbackList.isEmpty()) "Koneksi ke Firestore / server AI melebihi batas waktu (timeout)." else null
+                )
+            } catch (e: kotlinx.coroutines.CancellationException) {
+                throw e
             } catch (e: Exception) {
                 val fallbackList = _uiState.value.subjectDetailsList
                 val errorMsg = when (e) {
-                    is TimeoutCancellationException -> "Koneksi ke Firestore / server AI melebihi batas waktu 8 detik (timeout)."
                     is FirebaseFirestoreException -> {
                         if (e.code == FirebaseFirestoreException.Code.PERMISSION_DENIED) {
                             "Izin ditolak (Rules Firebase). Akun Anda tidak berhak membaca dokumen ini."

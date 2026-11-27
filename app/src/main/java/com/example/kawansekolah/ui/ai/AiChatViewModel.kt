@@ -17,6 +17,7 @@ import com.example.kawansekolah.data.repository.AiRepository
 import com.example.kawansekolah.utils.NotificationHelper
 import com.google.firebase.Firebase
 import com.google.firebase.auth.auth
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.TimeoutCancellationException
 import kotlinx.coroutines.delay
@@ -122,16 +123,19 @@ class AiChatViewModel : ViewModel() {
 
         val aiNotifId = (1000..99999).random()
 
-        onNewNotification(
-            NotificationItem(
-                id = aiNotifId,
-                title = "AI Analytics sedang berpikir... 🤖",
-                message = "Memproses pertanyaan untuk $studentName ($subjectName)",
-                timestampMillis = System.currentTimeMillis(),
-                type = NotificationType.AI_RUNNING,
-                isRead = false
+        try {
+            onNewNotification(
+                NotificationItem(
+                    id = aiNotifId,
+                    title = "AI Analytics sedang berpikir... 🤖",
+                    message = "Memproses pertanyaan untuk $studentName ($subjectName)",
+                    timestampMillis = System.currentTimeMillis(),
+                    type = NotificationType.AI_RUNNING,
+                    isRead = false
+                )
             )
-        )
+        } catch (_: Exception) {
+        }
 
         viewModelScope.launch {
             try {
@@ -139,11 +143,11 @@ class AiChatViewModel : ViewModel() {
                 val subjectId = if (subjectName == "Matematika") "subj_matematika_9" else "subj_bindo_9"
                 val topics = AcademicRepository.getTopicsForSubject(subjectId)
                 val grades = AcademicRepository.getGradesForStudentAndSubject(authUid, subjectId)
-                val (finalScore, weakest, _) = AcademicRepository.calculateWeightedFinalScore(topics, grades)
+                val (finalScore, _, _) = AcademicRepository.calculateWeightedFinalScore(topics, grades)
 
                 val topicDtos = topics.map { t ->
                     val avgScore = grades.filter { it.topicId == t.id }.map { it.score }.average()
-                    TopicScoreDto(t.name, if (avgScore.isNaN()) 0.0 else avgScore, t.weight)
+                    TopicScoreDto(t.name, if (avgScore.isNaN() || avgScore.isInfinite()) 0.0 else avgScore, t.weight)
                 }
 
                 val req = AiInsightRequest(
@@ -168,7 +172,7 @@ class AiChatViewModel : ViewModel() {
                 } catch (e: TimeoutCancellationException) {
                     "⏳ Waktu permintaan AI melebihi 90 detik (Timeout). Silakan coba beberapa saat lagi."
                 } catch (e: Exception) {
-                    "⚠️ Gagal terhubung ke server AI Backend (http://10.0.2.2:3000): ${e.message ?: "Server offline"}"
+                    "⚠️ Gagal terhubung ke server AI Backend: ${e.message ?: "Server offline"}"
                 }
 
                 val aiMsg = ChatMessage(
@@ -184,25 +188,33 @@ class AiChatViewModel : ViewModel() {
                 )
 
                 val answeredTitle = "Jawaban AI Analytics untuk $studentName 🤖"
-                onNewNotification(
-                    NotificationItem(
-                        id = aiNotifId,
+                try {
+                    onNewNotification(
+                        NotificationItem(
+                            id = aiNotifId,
+                            title = answeredTitle,
+                            message = responseText,
+                            timestampMillis = System.currentTimeMillis(),
+                            type = NotificationType.AI,
+                            isRead = false
+                        )
+                    )
+                } catch (_: Exception) {
+                }
+
+                try {
+                    NotificationHelper.showSystemNotification(
+                        context = context,
                         title = answeredTitle,
                         message = responseText,
-                        timestampMillis = System.currentTimeMillis(),
-                        type = NotificationType.AI,
-                        isRead = false
+                        notificationId = aiNotifId,
+                        navigateTo = "ai"
                     )
-                )
+                } catch (_: Exception) {
+                }
 
-                NotificationHelper.showSystemNotification(
-                    context = context,
-                    title = answeredTitle,
-                    message = responseText,
-                    notificationId = aiNotifId,
-                    navigateTo = "ai"
-                )
-
+            } catch (e: CancellationException) {
+                throw e
             } catch (_: Exception) {
                 val errorText = "Analisis AI Scolarsia: Nilai akhir berbobot $subjectName adalah 83. Sub-materi terlemah: Pitagoras (skor 70). Berikan latihan 15 menit per hari."
                 val errorMsg = ChatMessage(

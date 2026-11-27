@@ -8,6 +8,7 @@ import com.example.kawansekolah.data.network.ApiService
 import com.example.kawansekolah.utils.DevHost
 import com.google.firebase.Firebase
 import com.google.firebase.auth.auth
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.tasks.await
 import retrofit2.HttpException
 import java.net.ConnectException
@@ -54,6 +55,8 @@ object AiRepository {
 
             return response
 
+        } catch (e: CancellationException) {
+            throw e
         } catch (e: HttpException) {
             httpCode = e.code()
             val duration = System.currentTimeMillis() - startTime

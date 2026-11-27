@@ -333,21 +333,24 @@ object AcademicRepository {
             val topicGrades = grades.filter { it.topicId == topic.id }
             if (topicGrades.isNotEmpty()) {
                 val avgScore = topicGrades.map { it.score }.average()
-                weightedSum += (avgScore * topic.weight)
-                totalWeight += topic.weight
+                if (!avgScore.isNaN() && !avgScore.isInfinite()) {
+                    weightedSum += (avgScore * topic.weight)
+                    totalWeight += topic.weight
 
-                if (avgScore < lowestScore) {
-                    lowestScore = avgScore
-                    weakestTopic = topic.name
-                }
-                if (avgScore > highestScore) {
-                    highestScore = avgScore
-                    strongestTopic = topic.name
+                    if (avgScore < lowestScore) {
+                        lowestScore = avgScore
+                        weakestTopic = topic.name
+                    }
+                    if (avgScore > highestScore) {
+                        highestScore = avgScore
+                        strongestTopic = topic.name
+                    }
                 }
             }
         }
 
-        val finalScore = if (totalWeight > 0) weightedSum / totalWeight else 0.0
+        val rawScore = if (totalWeight > 0.0) weightedSum / totalWeight else 0.0
+        val finalScore = if (rawScore.isNaN() || rawScore.isInfinite()) 0.0 else rawScore
         return Triple(finalScore, weakestTopic, strongestTopic)
     }
 

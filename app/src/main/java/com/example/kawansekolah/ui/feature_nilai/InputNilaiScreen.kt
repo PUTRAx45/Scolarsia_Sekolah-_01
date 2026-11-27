@@ -18,7 +18,11 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.kawansekolah.data.model.Kelas
+import com.example.kawansekolah.data.model.Kompetensi
+import com.example.kawansekolah.data.model.Periode
 import com.example.kawansekolah.data.model.Score
+import com.example.kawansekolah.data.model.SubjectEntity
 import com.example.kawansekolah.data.repository.ScoreRepository
 import com.example.kawansekolah.domain.AccessPolicy
 import com.example.kawansekolah.domain.ScoreValidator
@@ -38,16 +42,20 @@ fun InputNilaiScreen(
     val subjectsList = remember { ScoreRepository.getDummySubjectsList() }
     val periodeList = remember { ScoreRepository.getDummyPeriodeList() }
 
-    var selectedClass by remember { mutableStateOf(kelasList.first()) }
-    var selectedSubject by remember { mutableStateOf(subjectsList.first()) }
-    var selectedPeriode by remember { mutableStateOf(periodeList.first()) }
+    val defaultClass = Kelas("cls_9a", "9-A", "SMP")
+    val defaultSubject = SubjectEntity("subj_matematika_9", "guru_smp_01", "Matematika", "SMP", 9)
+    val defaultPeriode = Periode("per_1", "Semester Ganjil 2026/2027", "Ganjil", "2026/2027")
+    val defaultKompetensi = Kompetensi("komp_1", "subj_matematika_9", "3.1", "Aritmatika")
+
+    var selectedClass by remember { mutableStateOf(kelasList.firstOrNull() ?: defaultClass) }
+    var selectedSubject by remember { mutableStateOf(subjectsList.firstOrNull() ?: defaultSubject) }
+    var selectedPeriode by remember { mutableStateOf(periodeList.firstOrNull() ?: defaultPeriode) }
 
     val kompetensiList = remember(selectedSubject.id) { ScoreRepository.getDummyKompetensiList(selectedSubject.id) }
-    var selectedKompetensi by remember { mutableStateOf(kompetensiList.first()) }
+    var selectedKompetensi by remember { mutableStateOf(kompetensiList.firstOrNull() ?: defaultKompetensi) }
 
     var selectedScoreType by remember { mutableStateOf("KUIS_HARIAN") }
 
-    // Dropdown Expanded States
     var expandedClass by remember { mutableStateOf(false) }
     var expandedSubject by remember { mutableStateOf(false) }
     var expandedPeriode by remember { mutableStateOf(false) }
@@ -105,7 +113,6 @@ fun InputNilaiScreen(
                     Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                         Text("Parameter Penilaian", fontWeight = FontWeight.Bold, fontSize = 14.sp)
 
-                        // Dropdown Kelas
                         ExposedDropdownMenuBox(
                             expanded = expandedClass,
                             onExpandedChange = { expandedClass = !expandedClass }
@@ -135,7 +142,6 @@ fun InputNilaiScreen(
                             }
                         }
 
-                        // Dropdown Mapel
                         ExposedDropdownMenuBox(
                             expanded = expandedSubject,
                             onExpandedChange = { expandedSubject = !expandedSubject }
@@ -165,7 +171,6 @@ fun InputNilaiScreen(
                             }
                         }
 
-                        // Dropdown Periode
                         ExposedDropdownMenuBox(
                             expanded = expandedPeriode,
                             onExpandedChange = { expandedPeriode = !expandedPeriode }
@@ -195,7 +200,6 @@ fun InputNilaiScreen(
                             }
                         }
 
-                        // Dropdown Kompetensi
                         ExposedDropdownMenuBox(
                             expanded = expandedKompetensi,
                             onExpandedChange = { expandedKompetensi = !expandedKompetensi }
@@ -225,7 +229,6 @@ fun InputNilaiScreen(
                             }
                         }
 
-                        // Jenis Penilaian
                         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                             FilterChip(
                                 selected = selectedScoreType == "KUIS_HARIAN",
@@ -249,13 +252,22 @@ fun InputNilaiScreen(
                         color = MaterialTheme.colorScheme.errorContainer,
                         modifier = Modifier.fillMaxWidth()
                     ) {
-                        Text(
-                            text = "⚠️ Akses Ditolak: Anda tidak memiliki wewenang menginput nilai untuk mata pelajaran ini.",
-                            color = MaterialTheme.colorScheme.onErrorContainer,
-                            fontSize = 12.sp,
-                            fontWeight = FontWeight.Bold,
-                            modifier = Modifier.padding(12.dp)
-                        )
+                        Column(modifier = Modifier.padding(16.dp)) {
+                            Text(
+                                text = "⚠️ Akses Ditolak: Anda tidak memiliki wewenang menginput nilai untuk mata pelajaran ini.",
+                                color = MaterialTheme.colorScheme.onErrorContainer,
+                                fontSize = 13.sp,
+                                fontWeight = FontWeight.Bold
+                            )
+                            Spacer(modifier = Modifier.height(12.dp))
+                            OutlinedButton(
+                                onClick = onBack,
+                                modifier = Modifier.fillMaxWidth(),
+                                shape = RoundedCornerShape(12.dp)
+                            ) {
+                                Text("Kembali ke Beranda")
+                            }
+                        }
                     }
                 }
             } else {

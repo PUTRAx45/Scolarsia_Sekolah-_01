@@ -60,11 +60,13 @@ fun AiScreen(
         }
     }
 
-    // Auto-scroll to bottom when new chat message arrives
     LaunchedEffect(uiState.chatMessages.size) {
         if (uiState.chatMessages.isNotEmpty()) {
             coroutineScope.launch {
-                listState.animateScrollToItem(uiState.chatMessages.size - 1)
+                try {
+                    listState.animateScrollToItem(uiState.chatMessages.size - 1)
+                } catch (_: Exception) {
+                }
             }
         }
     }
@@ -89,7 +91,6 @@ fun AiScreen(
             onNotificationClick = onNotificationClick
         )
 
-        // Quick Prompt Chips
         val quickPrompts = listOf(
             "📊 Ringkasan Nilai",
             "⚠️ Materi Terlemah",
@@ -110,7 +111,6 @@ fun AiScreen(
             }
         }
 
-        // Chat Message List
         LazyColumn(
             state = listState,
             modifier = Modifier
@@ -143,7 +143,6 @@ fun AiScreen(
                 }
             }
 
-            // Retry Button when previous attempt failed
             if (!uiState.isLoadingAi && uiState.lastFailedQuery != null) {
                 item {
                     Row(
@@ -165,7 +164,6 @@ fun AiScreen(
             }
         }
 
-        // Transparent Bottom Chat Input Bar
         Surface(
             color = Color.Transparent,
             tonalElevation = 0.dp,

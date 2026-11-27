@@ -7,12 +7,12 @@ data class TopicScoreDto(
 )
 
 data class ChatHistoryDto(
-    val role: String, // "user" or "assistant"
+    val role: String,
     val content: String
 )
 
 data class AiInsightRequest(
-    val mode: String = "AUTO_INSIGHT", // "INSIGHT_AUTO" or "CHAT"
+    val mode: String = "AUTO_INSIGHT",
     val studentId: String = "",
     val studentName: String = "",
     val userRole: String = "SISWA",
