@@ -1,24 +1,19 @@
 package com.example.kawansekolah.ui
 
 import android.util.Log
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.WifiOff
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.example.kawansekolah.BuildConfig
 import com.example.kawansekolah.FirebaseEmulatorHelper
 import com.example.kawansekolah.data.SeedDataHelper
 import com.example.kawansekolah.data.model.UserRole
@@ -46,23 +41,19 @@ fun MainApp(
     val coroutineScope = rememberCoroutineScope()
     val sessionManager = remember(context) { UserSessionManager(context) }
 
-    // Monitor Network Connectivity
     val networkObserver = remember(context) { NetworkObserver(context) }
     val isOnline by networkObserver.isOnline.collectAsState(initial = true)
 
-    // State Screens
     var showSplash by remember { mutableStateOf(true) }
     var selectedRoleForLogin by remember { mutableStateOf<UserRole?>(null) }
 
     var isLoggedIn by remember { mutableStateOf(sessionManager.isLoggedIn() || Firebase.auth.currentUser != null) }
     var userDisplayName by remember { mutableStateOf(sessionManager.getUserName()) }
     var userRole by remember { mutableStateOf(sessionManager.getUserRole()) }
-    var showLoginSuccessDialog by remember { mutableStateOf(false) }
 
     var isRestoringSession by remember { mutableStateOf(false) }
     var sessionRestoreError by remember { mutableStateOf<String?>(null) }
 
-    // Session restoration on startup from auth.currentUser + Firestore
     val restoreSession: () -> Unit = {
         val currentUser = Firebase.auth.currentUser
         if (currentUser != null) {
@@ -73,14 +64,13 @@ fun MainApp(
                     val profile = AuthRepository.getUserProfile(currentUser.uid)
                     if (profile != null) {
                         val name = profile.name.ifBlank { "Pengguna" }
-                        // Ambil role view aktif dari sessionManager jika ada
                         val role = sessionManager.getUserRole()
                         val loginRoleStr = profile.role.uppercase()
-                        val allowedRoles = profile.roles.mapNotNull { 
-                            try { UserRole.valueOf(it.uppercase()) } catch(e: Exception) { null } 
+                        val allowedRoles = profile.roles.mapNotNull {
+                            try { UserRole.valueOf(it.uppercase()) } catch (e: Exception) { null }
                         }
                         sessionManager.saveAllowedRoles(allowedRoles)
-                        
+
                         userDisplayName = name
                         userRole = role
                         sessionManager.saveSession(name, UserRole.valueOf(loginRoleStr), isSuperAdmin = profile.isSuperAdmin)
@@ -101,7 +91,6 @@ fun MainApp(
         }
     }
 
-    // Inisialisasi Emulator & Restore Session
     LaunchedEffect(Unit) {
         FirebaseEmulatorHelper.setupEmulators(context)
         coroutineScope.launch {
@@ -111,7 +100,6 @@ fun MainApp(
     }
 
     Column(modifier = Modifier.fillMaxSize()) {
-        // Banner Offline
         if (!isOnline) {
             Surface(
                 color = Color(0xFFDC2626),
@@ -140,7 +128,6 @@ fun MainApp(
             }
         }
 
-        // Banner Error Pemulihan Sesi (dengan Tombol Coba Lagi)
         if (sessionRestoreError != null && isLoggedIn) {
             Surface(
                 color = MaterialTheme.colorScheme.errorContainer,
@@ -198,17 +185,16 @@ fun MainApp(
                             val finalName = user.name.ifBlank { "Pengguna" }
                             val role = user.userRole
 
-                            val allowedRoles = user.roles.mapNotNull { 
-                                try { UserRole.valueOf(it.uppercase()) } catch(e: Exception) { null } 
+                            val allowedRoles = user.roles.mapNotNull {
+                                try { UserRole.valueOf(it.uppercase()) } catch (e: Exception) { null }
                             }
-                            
+
                             sessionManager.saveAllowedRoles(allowedRoles)
                             sessionManager.saveSession(finalName, role, isSuperAdmin = user.isSuperAdmin)
 
                             userDisplayName = finalName
                             userRole = role
                             isLoggedIn = true
-                            showLoginSuccessDialog = true
 
                             NotificationHelper.showSystemNotification(
                                 context = context,
@@ -241,50 +227,6 @@ fun MainApp(
                     initialNavigateTo = initialNavigateTo,
                     onNavigateHandled = onNavigateHandled
                 )
-
-                if (showLoginSuccessDialog) {
-                    AlertDialog(
-                        onDismissRequest = { showLoginSuccessDialog = false },
-                        icon = {
-                            Box(
-                                modifier = Modifier
-                                    .size(56.dp)
-                                    .clip(CircleShape)
-                                    .background(MaterialTheme.colorScheme.primaryContainer),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Default.CheckCircle,
-                                    contentDescription = null,
-                                    tint = MaterialTheme.colorScheme.primary,
-                                    modifier = Modifier.size(32.dp)
-                                )
-                            }
-                        },
-                        title = {
-                            Text(
-                                text = "Login Berhasil!",
-                                fontWeight = FontWeight.Bold,
-                                fontSize = 20.sp
-                            )
-                        },
-                        text = {
-                            Text(
-                                text = "Selamat datang di Scolarsia AI Analytics, $userDisplayName! 👋 Mode: ${userRole.label}.",
-                                fontSize = 14.sp
-                            )
-                        },
-                        confirmButton = {
-                            Button(
-                                onClick = { showLoginSuccessDialog = false },
-                                shape = RoundedCornerShape(20.dp)
-                            ) {
-                                Text("Mulai Belajar")
-                            }
-                        },
-                        shape = RoundedCornerShape(24.dp)
-                    )
-                }
             }
         }
     }
