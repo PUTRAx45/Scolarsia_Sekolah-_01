@@ -19,6 +19,7 @@ class UserSessionManager(context: Context) {
         private const val KEY_USER_CLASS = "user_class"
         private const val KEY_IS_SUPER_ADMIN = "is_super_admin"
         private const val KEY_ALLOWED_ROLES = "allowed_roles"
+        private const val KEY_EMAIL_HISTORY = "login_email_history"
     }
 
     fun saveSession(userName: String, role: UserRole, className: String = "", isSuperAdmin: Boolean = false) {
@@ -103,9 +104,26 @@ class UserSessionManager(context: Context) {
         return if (result.isNotEmpty()) result else listOf(getLoginRole())
     }
 
+    fun saveEmailHistory(email: String) {
+        if (email.isBlank()) return
+        val currentSet = prefs.getStringSet(KEY_EMAIL_HISTORY, emptySet()) ?: emptySet()
+        val updatedSet = currentSet.toMutableSet().apply { add(email.trim().lowercase()) }
+        prefs.edit().apply {
+            putStringSet(KEY_EMAIL_HISTORY, updatedSet)
+            commit()
+        }
+    }
+
+    fun getEmailHistory(): List<String> {
+        val set = prefs.getStringSet(KEY_EMAIL_HISTORY, emptySet()) ?: emptySet()
+        return set.toList()
+    }
+
     fun clearSession() {
+        val emailHistory = prefs.getStringSet(KEY_EMAIL_HISTORY, emptySet()) ?: emptySet()
         prefs.edit().apply {
             clear()
+            putStringSet(KEY_EMAIL_HISTORY, emailHistory)
             commit()
         }
     }

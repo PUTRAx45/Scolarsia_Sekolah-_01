@@ -7,6 +7,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -17,11 +18,14 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.focus.FocusDirection
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
@@ -33,8 +37,10 @@ import com.example.kawansekolah.BuildConfig
 import com.example.kawansekolah.R
 import com.example.kawansekolah.data.model.User
 import com.example.kawansekolah.data.model.UserRole
+import com.example.kawansekolah.demo.DemoAccounts
 import com.example.kawansekolah.ui.theme.TextMuted
 import com.example.kawansekolah.utils.DevHost
+import com.example.kawansekolah.utils.UserSessionManager
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
@@ -50,6 +56,8 @@ fun LoginScreen(
     val coroutineScope = rememberCoroutineScope()
     val scrollState = rememberScrollState()
     val context = LocalContext.current
+    val focusManager = LocalFocusManager.current
+    val sessionManager = remember(context) { UserSessionManager(context) }
 
     BackHandler {
         onBackToRoleSelection()
@@ -60,9 +68,20 @@ fun LoginScreen(
     var passwordInput by remember { mutableStateOf("") }
     var isPasswordVisible by remember { mutableStateOf(false) }
     var errorMessage by remember { mutableStateOf("") }
+    var isEmailFocused by remember { mutableStateOf(false) }
+    var isDropdownDismissedManually by remember { mutableStateOf(false) }
 
-    // Dialog Konfigurasi Alamat Server (Debug Mode Only)
     var showServerConfigDialog by remember { mutableStateOf(false) }
+
+    LaunchedEffect(initialRole) {
+        selectedRole = initialRole
+        identifierInput = ""
+        passwordInput = ""
+        errorMessage = ""
+        isEmailFocused = false
+        isDropdownDismissedManually = false
+        authViewModel.resetState()
+    }
 
     val roleTitle = when (selectedRole) {
         UserRole.GURU -> "Guru"
@@ -88,6 +107,29 @@ fun LoginScreen(
 
     val passwordPlaceholder = "••••••••"
 
+    val demoSuggestions = remember(selectedRole) {
+        when (selectedRole) {
+            UserRole.GURU -> listOf("guru12@scolarsia.ac.id", "walikelas12@scolarsia.ac.id")
+            UserRole.WALI_KELAS -> listOf("walikelas12@scolarsia.ac.id", "guru12@scolarsia.ac.id")
+            UserRole.SISWA -> listOf("siswa01@scolarsia.ac.id")
+            UserRole.ORANG_TUA -> listOf("ortu_siswa01@scolarsia.ac.id")
+            UserRole.ADMIN -> listOf("admin12@scolarsia.ac.id")
+        }
+    }
+
+    val emailHistory = remember(selectedRole) {
+        sessionManager.getEmailHistory()
+    }
+
+    val allSuggestions = remember(demoSuggestions, emailHistory, identifierInput) {
+        val combined = (demoSuggestions + emailHistory).distinct()
+        if (identifierInput.isBlank()) {
+            combined
+        } else {
+            combined.filter { it.contains(identifierInput.trim(), ignoreCase = true) }
+        }
+    }
+
     LaunchedEffect(authUiState) {
         when (val state = authUiState) {
             is AuthUiState.Success -> {
@@ -103,6 +145,7 @@ fun LoginScreen(
                     role = roleName,
                     name = if (user.name.isBlank()) "Pengguna ${selectedRole.label}" else user.name
                 )
+                sessionManager.saveEmailHistory(finalUser.email)
                 onLoginSuccessUser(finalUser)
             }
             is AuthUiState.Error -> {
@@ -120,7 +163,6 @@ fun LoginScreen(
             .navigationBarsPadding()
             .imePadding()
     ) {
-        // Main Scrollable Content Column
         Column(
             modifier = Modifier
                 .fillMaxSize()
@@ -131,7 +173,6 @@ fun LoginScreen(
         ) {
             Spacer(modifier = Modifier.height(24.dp))
 
-            // Scolarsia Badge Logo
             Box(
                 modifier = Modifier
                     .size(80.dp)
@@ -156,7 +197,6 @@ fun LoginScreen(
                 modifier = if (BuildConfig.DEBUG) Modifier.clickable { showServerConfigDialog = true } else Modifier
             )
 
-            // Role Badge Pill
             Surface(
                 modifier = Modifier.padding(top = 6.dp),
                 shape = RoundedCornerShape(12.dp),
@@ -189,29 +229,87 @@ fun LoginScreen(
 
             Spacer(modifier = Modifier.height(28.dp))
 
-            // Field 1: Email / NISN / HP
-            OutlinedTextField(
-                value = identifierInput,
-                onValueChange = { identifierInput = it },
-                label = { Text(fieldLabel) },
-                placeholder = { Text(emailPlaceholder, fontSize = 12.sp, color = TextMuted) },
-                colors = OutlinedTextFieldDefaults.colors(
-                    focusedBorderColor = MaterialTheme.colorScheme.primary,
-                    unfocusedBorderColor = MaterialTheme.colorScheme.outline,
-                    focusedLabelColor = MaterialTheme.colorScheme.primary,
-                    unfocusedLabelColor = MaterialTheme.colorScheme.onSurfaceVariant,
-                    focusedTextColor = MaterialTheme.colorScheme.onSurface,
-                    unfocusedTextColor = MaterialTheme.colorScheme.onSurface,
-                    cursorColor = MaterialTheme.colorScheme.primary
-                ),
-                modifier = Modifier.fillMaxWidth(),
-                singleLine = true,
-                shape = RoundedCornerShape(12.dp)
-            )
+            Box(modifier = Modifier.fillMaxWidth()) {
+                OutlinedTextField(
+                    value = identifierInput,
+                    onValueChange = {
+                        identifierInput = it
+                        isDropdownDismissedManually = false
+                    },
+                    label = { Text(fieldLabel) },
+                    placeholder = { Text(emailPlaceholder, fontSize = 12.sp, color = TextMuted) },
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedBorderColor = MaterialTheme.colorScheme.primary,
+                        unfocusedBorderColor = MaterialTheme.colorScheme.outline,
+                        focusedLabelColor = MaterialTheme.colorScheme.primary,
+                        unfocusedLabelColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                        focusedTextColor = MaterialTheme.colorScheme.onSurface,
+                        unfocusedTextColor = MaterialTheme.colorScheme.onSurface,
+                        cursorColor = MaterialTheme.colorScheme.primary
+                    ),
+                    keyboardOptions = KeyboardOptions(
+                        keyboardType = KeyboardType.Email,
+                        imeAction = ImeAction.Next
+                    ),
+                    keyboardActions = KeyboardActions(
+                        onNext = { focusManager.moveFocus(FocusDirection.Down) }
+                    ),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .onFocusChanged { focusState ->
+                            isEmailFocused = focusState.isFocused
+                            if (focusState.isFocused) {
+                                isDropdownDismissedManually = false
+                            }
+                        },
+                    singleLine = true,
+                    shape = RoundedCornerShape(12.dp)
+                )
+
+                DropdownMenu(
+                    expanded = isEmailFocused && !isDropdownDismissedManually && allSuggestions.isNotEmpty(),
+                    onDismissRequest = { isDropdownDismissedManually = true },
+                    modifier = Modifier
+                        .fillMaxWidth(0.85f)
+                        .background(MaterialTheme.colorScheme.surface)
+                ) {
+                    allSuggestions.forEach { suggestion ->
+                        DropdownMenuItem(
+                            text = {
+                                Column {
+                                    Text(
+                                        text = suggestion,
+                                        fontWeight = FontWeight.Medium,
+                                        fontSize = 13.sp,
+                                        color = MaterialTheme.colorScheme.onSurface
+                                    )
+                                    val demoAcc = DemoAccounts.getDemoAccountInfo(suggestion)
+                                    if (demoAcc != null) {
+                                        Text(
+                                            text = "Saran Akun Demo",
+                                            fontSize = 10.sp,
+                                            fontWeight = FontWeight.Bold,
+                                            color = MaterialTheme.colorScheme.primary
+                                        )
+                                    }
+                                }
+                            },
+                            onClick = {
+                                identifierInput = suggestion
+                                val demoAcc = DemoAccounts.getDemoAccountInfo(suggestion)
+                                if (demoAcc != null) {
+                                    passwordInput = demoAcc.password
+                                }
+                                isDropdownDismissedManually = true
+                                focusManager.moveFocus(FocusDirection.Down)
+                            }
+                        )
+                    }
+                }
+            }
 
             Spacer(modifier = Modifier.height(14.dp))
 
-            // Field 2: Password
             OutlinedTextField(
                 value = passwordInput,
                 onValueChange = {
@@ -239,7 +337,13 @@ fun LoginScreen(
                     }
                 },
                 visualTransformation = if (isPasswordVisible) VisualTransformation.None else PasswordVisualTransformation(),
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
+                keyboardOptions = KeyboardOptions(
+                    keyboardType = KeyboardType.Password,
+                    imeAction = ImeAction.Done
+                ),
+                keyboardActions = KeyboardActions(
+                    onDone = { focusManager.clearFocus() }
+                ),
                 modifier = Modifier
                     .fillMaxWidth()
                     .onFocusChanged { focusState ->
@@ -276,7 +380,6 @@ fun LoginScreen(
 
             Spacer(modifier = Modifier.height(24.dp))
 
-            // Primary Button "Masuk"
             Button(
                 onClick = {
                     errorMessage = ""
@@ -332,11 +435,8 @@ fun LoginScreen(
 
             Spacer(modifier = Modifier.height(80.dp))
         }
-
-
     }
 
-    // Dialog Konfigurasi & Tes Alamat Server 3 Layanan
     if (showServerConfigDialog) {
         ServerConfigDialog(
             onDismiss = { showServerConfigDialog = false }
