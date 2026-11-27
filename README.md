@@ -113,23 +113,22 @@ scolarsia.autostart=false
 
 ### Opsi B: Manual via Terminal
 
-Jika Anda ingin menjalankan layanan secara terpisah:
+Jika Anda ingin menjalankan layanan secara terpisah dari direktori utama proyek (`<PATH_PROYEK>`):
 
 ```powershell
 # 1. Menyalakan Ollama AI Engine (jika menggunakan AI lokal)
 ollama serve
 
 # 2. Menyalakan Container Docker (PostgreSQL & Firebase Emulator)
-cd C:\firebase-docker
+cd <PATH_PROYEK>
 docker compose up -d
 
 # 3. Seeding Data PostgreSQL (Port 5434)
-cd C:\Users\danip\Downloads\KawanSekolah1-master
 docker exec -i firebase-docker-postgres-1 psql -U admin -d postgres < seed_postgres.sql
 
 # 4. Seeding Data Firebase Emulator (Auth & Firestore)
 cd seed-firebase
-cmd.exe /c "npm install"
+npm install
 $env:FIREBASE_AUTH_EMULATOR_HOST="127.0.0.1:9099"
 $env:FIRESTORE_EMULATOR_HOST="127.0.0.1:8081"
 $env:GCLOUD_PROJECT="demo-kawansekolah"
@@ -137,7 +136,7 @@ node seed.js
 
 # 5. Menyalakan Backend API Node.js (Port 3000)
 cd ..\backend
-cmd.exe /c "npm install"
+npm install
 npm start
 ```
 
