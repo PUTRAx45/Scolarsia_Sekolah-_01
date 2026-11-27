@@ -131,23 +131,24 @@ warmUpOllama();
 async function verifyAdminToken(req, res, next) {
   const authHeader = req.headers.authorization || '';
   if (!authHeader.startsWith('Bearer ')) {
-    if (process.env.NODE_ENV !== 'production' || isEmulatorMode) {
-      req.user = { uid: 'admin_01', role: 'admin' };
-      return next();
-    }
     return res.status(401).json({ status: 'error', message: 'Token otentikasi admin diperlukan.' });
   }
 
   const idToken = authHeader.split('Bearer ')[1];
   try {
     const decodedToken = await admin.auth().verifyIdToken(idToken);
-    req.user = decodedToken;
-    next();
-  } catch (e) {
-    if (process.env.NODE_ENV !== 'production' || isEmulatorMode) {
-      req.user = { uid: 'admin_01', role: 'admin' };
-      return next();
+
+    // Check if the user is an admin by custom claims or role
+    const isSuperAdmin = decodedToken.isSuperAdmin === true;
+    const hasAdminRole = decodedToken.roles && decodedToken.roles.includes('ADMIN');
+
+    if (isSuperAdmin || hasAdminRole) {
+        req.user = decodedToken;
+        next();
+    } else {
+        return res.status(403).json({ status: 'error', message: 'Akses ditolak: Anda bukan Administrator.' });
     }
+  } catch (e) {
     return res.status(401).json({ status: 'error', message: 'Token admin tidak valid: ' + e.message });
   }
 }
@@ -535,9 +536,21 @@ app.post('/admin/users', verifyAdminToken, async (req, res) => {
 
     const uid = authUser.uid;
     const normRole = (role || 'siswa').toLowerCase();
+    const upperRole = normRole.toUpperCase();
+
+    // Validate roles for new users
+    let rolesArray = [upperRole];
+    if (upperRole === 'GURU' || upperRole === 'WALI_KELAS') {
+        rolesArray = ['GURU', 'WALI_KELAS']; // By default, let's just give them both since the app allows it.
+    }
+
+    // Safety check - never create super admin via this endpoint
+    if (upperRole === 'ADMIN') {
+        return res.status(403).json({ status: 'error', message: 'Pembuatan akun Super Admin tidak diizinkan melalui endpoint ini.' });
+    }
 
     try {
-      await admin.auth().setCustomUserClaims(uid, { role: normRole });
+      await admin.auth().setCustomUserClaims(uid, { role: normRole, roles: rolesArray });
     } catch (_) {}
 
     const userDocData = {
@@ -547,11 +560,13 @@ app.post('/admin/users', verifyAdminToken, async (req, res) => {
       namaLengkap: name.trim(),
       email: email.trim(),
       role: normRole,
+      roles: rolesArray,
       schoolLevel: schoolLevel || 'SMP',
       grade: grade || 9,
       className: className || '9-A',
       studentIds: studentIds || [],
       aktif: true,
+      isSuperAdmin: false,
       wajibGantiSandi: true,
       createdAt: Date.now()
     };
@@ -653,8 +668,11 @@ app.post('/dev/seed-clear', async (req, res) => {
   }
 
   try {
-    await clearDummyData();
-    return res.json({ status: 'success', message: '✅ Data dummy berhasil dibersihkan dari emulator!' });
+    const deletedCount = await clearDummyData();
+    if (deletedCount === 0) {
+      return res.json({ status: 'success', message: 'ℹ️ Tidak ada data dummy untuk dihapus.' });
+    }
+    return res.json({ status: 'success', message: `✅ Data dummy berhasil dibersihkan dari emulator! (${deletedCount} dokumen terhapus)` });
   } catch (e) {
     console.error('❌ Error /dev/seed-clear:', e);
     return res.status(500).json({ status: 'error', message: e.message || 'Gagal menghapus data dummy.' });

@@ -15,7 +15,9 @@ data class User(
     @get:PropertyName("schoolLevel") @set:PropertyName("schoolLevel") var schoolLevel: String = "SMP",
     @get:PropertyName("grade") @set:PropertyName("grade") var grade: Int = 9,
     @get:PropertyName("className") @set:PropertyName("className") var className: String = "9-A",
-    @get:PropertyName("aktif") @set:PropertyName("aktif") var aktif: Boolean = true
+    @get:PropertyName("aktif") @set:PropertyName("aktif") var aktif: Boolean = true,
+    @get:PropertyName("roles") @set:PropertyName("roles") var roles: List<String> = emptyList(),
+    @get:PropertyName("isSuperAdmin") @set:PropertyName("isSuperAdmin") var isSuperAdmin: Boolean = false
 ) {
     @get:Exclude
     val userRole: UserRole

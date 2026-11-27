@@ -22,6 +22,9 @@ import com.example.kawansekolah.R
 fun TopBarArea(
     userName: String = "Pengguna",
     unreadCount: Int = 0,
+    isViewAsMode: Boolean = false,
+    viewAsRoleName: String = "",
+    onBackToAdminClick: () -> Unit = {},
     onNotificationClick: () -> Unit = {}
 ) {
     Surface(
@@ -81,6 +84,34 @@ fun TopBarArea(
                         tint = MaterialTheme.colorScheme.onBackground,
                         modifier = Modifier.size(26.dp)
                     )
+                }
+            }
+        }
+        
+        if (isViewAsMode) {
+            Surface(
+                color = MaterialTheme.colorScheme.tertiaryContainer,
+                contentColor = MaterialTheme.colorScheme.onTertiaryContainer,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 6.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = "Mode admin: melihat sebagai $viewAsRoleName",
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.Medium
+                    )
+                    TextButton(
+                        onClick = onBackToAdminClick,
+                        contentPadding = PaddingValues(horizontal = 8.dp, vertical = 2.dp)
+                    ) {
+                        Text("Kembali ke Admin", fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                    }
                 }
             }
         }

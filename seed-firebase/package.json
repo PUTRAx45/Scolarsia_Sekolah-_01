@@ -1,0 +1,12 @@
+{
+  "name": "scolarsia-firebase-seed",
+  "version": "1.0.0",
+  "description": "Script Data Seed Idempotent untuk Firebase Auth & Firestore Emulator Scolarsia",
+  "main": "seed.js",
+  "scripts": {
+    "start": "node seed.js"
+  },
+  "dependencies": {
+    "firebase-admin": "^13.0.0"
+  }
+}

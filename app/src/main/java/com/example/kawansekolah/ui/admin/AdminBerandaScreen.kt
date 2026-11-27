@@ -44,8 +44,8 @@ fun AdminBerandaScreen(
             .background(MaterialTheme.colorScheme.background)
     ) {
         TopBarArea(
-            userName = userName,
-            unreadCount = unreadCount,
+            userName = "Pak Arif",
+            unreadCount = 2,
             onNotificationClick = onNotificationClick
         )
 
@@ -69,55 +69,78 @@ fun AdminBerandaScreen(
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Text(
-                            text = "STATISTIK PENGGUNA",
+                            text = "SISWA AKTIF",
                             fontSize = 11.sp,
                             fontWeight = FontWeight.Bold,
                             color = ColorWhite.copy(alpha = 0.85f)
                         )
                         Surface(
-                            shape = CircleShape,
-                            color = ColorWhite.copy(alpha = 0.2f)
+                            shape = RoundedCornerShape(12.dp),
+                            color = ColorWhite.copy(alpha = 1f)
                         ) {
                             Text(
-                                text = "$totalGuru guru",
+                                text = "26 guru",
                                 fontSize = 10.sp,
                                 fontWeight = FontWeight.Bold,
-                                color = ColorWhite,
-                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp)
+                                color = PrimaryBlue,
+                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
                             )
                         }
                     }
 
-                    Spacer(modifier = Modifier.height(10.dp))
+                    Spacer(modifier = Modifier.height(8.dp))
 
-                    Text(
-                        text = "$totalUsers Total",
-                        fontSize = 32.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = ColorWhite
-                    )
+                    Row(verticalAlignment = Alignment.Bottom) {
+                        Text(
+                            text = "384",
+                            fontSize = 40.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = ColorWhite
+                        )
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text(
+                            text = "siswa",
+                            fontSize = 14.sp,
+                            fontWeight = FontWeight.Normal,
+                            color = ColorWhite,
+                            modifier = Modifier.padding(bottom = 8.dp)
+                        )
+                    }
 
                     Spacer(modifier = Modifier.height(16.dp))
 
                     Row(
                         modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceEvenly
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
-                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                            Text("GURU", fontSize = 10.sp, color = ColorWhite.copy(alpha = 0.7f))
-                            Text("$totalGuru", fontSize = 16.sp, fontWeight = FontWeight.Bold, color = ColorWhite)
+                        Surface(
+                            modifier = Modifier.weight(1f),
+                            shape = RoundedCornerShape(8.dp),
+                            color = ColorWhite.copy(alpha = 1f)
+                        ) {
+                            Column(
+                                modifier = Modifier.padding(vertical = 12.dp),
+                                horizontalAlignment = Alignment.CenterHorizontally
+                            ) {
+                                Text("KELAS", fontSize = 10.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                Spacer(modifier = Modifier.height(4.dp))
+                                Text("18", fontSize = 16.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface)
+                            }
                         }
-                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                            Text("SISWA", fontSize = 10.sp, color = ColorWhite.copy(alpha = 0.7f))
-                            Text("$totalSiswa", fontSize = 16.sp, fontWeight = FontWeight.Bold, color = ColorWhite)
-                        }
-                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                            Text("ORTU", fontSize = 10.sp, color = ColorWhite.copy(alpha = 0.7f))
-                            Text("$totalOrtu", fontSize = 16.sp, fontWeight = FontWeight.Bold, color = ColorWhite)
-                        }
-                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                            Text("KELAS", fontSize = 10.sp, color = ColorWhite.copy(alpha = 0.7f))
-                            Text("$totalKelas", fontSize = 16.sp, fontWeight = FontWeight.Bold, color = ColorWhite)
+                        
+                        Surface(
+                            modifier = Modifier.weight(1f),
+                            shape = RoundedCornerShape(8.dp),
+                            color = ColorWhite.copy(alpha = 1f)
+                        ) {
+                            Column(
+                                modifier = Modifier.padding(vertical = 12.dp),
+                                horizontalAlignment = Alignment.CenterHorizontally
+                            ) {
+                                Text("MAPEL", fontSize = 10.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                Spacer(modifier = Modifier.height(4.dp))
+                                Text("12", fontSize = 16.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface)
+                            }
                         }
                     }
                 }
@@ -145,45 +168,45 @@ fun AdminBerandaScreen(
             )
 
             // Recent Activity / System Log Section
-            Text(
-                text = "Aktivitas terbaru",
-                style = MaterialTheme.typography.labelLarge,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
+            Spacer(modifier = Modifier.height(8.dp))
 
-            if (activities.isEmpty()) {
-                Surface(
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(16.dp),
-                    color = MaterialTheme.colorScheme.surface,
-                    border = BorderStroke(1.dp, CardBorderStroke)
-                ) {
-                    EmptyStateView(
-                        title = "Belum ada aktivitas",
-                        description = "Belum ada aktivitas atau data pengguna terdaftar.",
-                        icon = Icons.Default.Inbox,
-                        modifier = Modifier.padding(12.dp)
+            Surface(
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(12.dp),
+                color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+            ) {
+                Column(modifier = Modifier.padding(16.dp)) {
+                    Text(
+                        text = "Aktivitas terbaru",
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 14.sp
+                    )
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Text(
+                        text = "Bobot diperbarui • Kelas IX A ditambahkan",
+                        fontSize = 12.sp,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
-            } else {
-                Surface(
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(12.dp),
-                    color = MaterialTheme.colorScheme.surface,
-                    border = BorderStroke(1.dp, CardBorderStroke)
-                ) {
-                    Column(modifier = Modifier.padding(14.dp)) {
-                        activities.forEachIndexed { idx, act ->
-                            Text(
-                                text = act,
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = MaterialTheme.colorScheme.onSurface
-                            )
-                            if (idx < activities.size - 1) {
-                                HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp), color = MaterialTheme.colorScheme.outline.copy(alpha = 0.15f))
-                            }
-                        }
-                    }
+            }
+            
+            Surface(
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(12.dp),
+                color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+            ) {
+                Column(modifier = Modifier.padding(16.dp)) {
+                    Text(
+                        text = "Ringkasan akun",
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 14.sp
+                    )
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Text(
+                        text = "26 guru • 384 siswa • 310 orang tua aktif",
+                        fontSize = 12.sp,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
                 }
             }
         }

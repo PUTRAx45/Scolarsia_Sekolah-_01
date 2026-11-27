@@ -10,28 +10,28 @@ service cloud.firestore {
       return get(/databases/$(database)/documents/pengguna/$(request.auth.uid)).data;
     }
 
-    function getUserRole() {
-      return request.auth.token.role != null ? request.auth.token.role : getUserData().role;
+    function getUserRoles() {
+      return request.auth.token.roles != null ? request.auth.token.roles : getUserData().roles;
     }
 
     function isAdmin() {
-      return isSignedIn() && (getUserRole() == 'admin' || getUserRole() == 'ADMIN');
+      return isSignedIn() && ('ADMIN' in getUserRoles() || 'admin' in getUserRoles());
     }
 
     function isTeacher() {
-      return isSignedIn() && (getUserRole() == 'guru' || getUserRole() == 'GURU' || getUserRole() == 'TEACHER');
+      return isSignedIn() && ('GURU' in getUserRoles() || 'guru' in getUserRoles() || 'TEACHER' in getUserRoles());
     }
 
     function isHomeroomTeacher() {
-      return isSignedIn() && (getUserRole() == 'wali_kelas' || getUserRole() == 'WALI_KELAS');
+      return isSignedIn() && ('WALI_KELAS' in getUserRoles() || 'wali_kelas' in getUserRoles());
     }
 
     function isStudent() {
-      return isSignedIn() && (getUserRole() == 'siswa' || getUserRole() == 'SISWA');
+      return isSignedIn() && ('SISWA' in getUserRoles() || 'siswa' in getUserRoles());
     }
 
     function isParent() {
-      return isSignedIn() && (getUserRole() == 'orang_tua' || getUserRole() == 'ORANG_TUA');
+      return isSignedIn() && ('ORANG_TUA' in getUserRoles() || 'orang_tua' in getUserRoles());
     }
 
     // 1. Koleksi: sekolah
@@ -69,17 +69,17 @@ service cloud.firestore {
 
     // 5. Koleksi: nilai & koreksiNilai & scores & grades
     match /nilai/{nilaiId} {
-      allow read: if isSignedIn() && (isTeacher() || isHomeroomTeacher() || isAdmin() || (isStudent() && resource.data.studentId == request.auth.uid) || isParent());
+      allow read: if isSignedIn() && (isTeacher() || isHomeroomTeacher() || isAdmin() || (isStudent() && resource.data.siswaUid == request.auth.uid) || (isParent() && resource.data.siswaUid in getUserData().studentIds));
       allow write: if isSignedIn() && (isTeacher() || isAdmin());
     }
 
     match /scores/{scoreId} {
-      allow read: if isSignedIn() && (isTeacher() || isHomeroomTeacher() || isAdmin() || (isStudent() && resource.data.studentId == request.auth.uid) || isParent());
+      allow read: if isSignedIn() && (isTeacher() || isHomeroomTeacher() || isAdmin() || (isStudent() && resource.data.siswaUid == request.auth.uid) || (isParent() && resource.data.siswaUid in getUserData().studentIds));
       allow write: if isSignedIn() && (isTeacher() || isAdmin());
     }
 
     match /grades/{gradeId} {
-      allow read: if isSignedIn() && (isTeacher() || isHomeroomTeacher() || isAdmin() || (isStudent() && resource.data.studentId == request.auth.uid) || isParent());
+      allow read: if isSignedIn() && (isTeacher() || isHomeroomTeacher() || isAdmin() || (isStudent() && resource.data.siswaUid == request.auth.uid) || (isParent() && resource.data.siswaUid in getUserData().studentIds));
       allow write: if isSignedIn() && (isTeacher() || isAdmin());
     }
 

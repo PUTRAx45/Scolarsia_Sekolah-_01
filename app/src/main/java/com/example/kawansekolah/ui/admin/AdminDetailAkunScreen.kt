@@ -17,13 +17,13 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.kawansekolah.ui.theme.PrimaryBlue
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AdminDetailAkunScreen(
-    userName: String = "Rani Puspitasari",
     onBackClick: () -> Unit = {},
-    onNavigateToPenugasanGuru: () -> Unit = {}
+    onNavigateToUbahPeran: () -> Unit = {}
 ) {
     Column(
         modifier = Modifier
@@ -33,7 +33,7 @@ fun AdminDetailAkunScreen(
             .navigationBarsPadding()
     ) {
         TopAppBar(
-            title = { Text("Detail akun", fontWeight = FontWeight.Bold) },
+            title = { Text("Detail akun", fontWeight = FontWeight.Bold, fontSize = 18.sp) },
             navigationIcon = {
                 IconButton(onClick = onBackClick) {
                     Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Kembali")
@@ -45,13 +45,14 @@ fun AdminDetailAkunScreen(
             modifier = Modifier
                 .weight(1f)
                 .verticalScroll(rememberScrollState())
-                .padding(20.dp),
+                .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
+            // Header Profile Card
             Card(
                 modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(20.dp),
-                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer)
+                shape = RoundedCornerShape(16.dp),
+                colors = CardDefaults.cardColors(containerColor = Color(0xFF0F172A))
             ) {
                 Row(
                     modifier = Modifier.padding(20.dp),
@@ -59,9 +60,9 @@ fun AdminDetailAkunScreen(
                 ) {
                     Box(
                         modifier = Modifier
-                            .size(56.dp)
+                            .size(48.dp)
                             .clip(CircleShape)
-                            .background(MaterialTheme.colorScheme.primary),
+                            .background(Color(0xFF1E3A8A)),
                         contentAlignment = Alignment.Center
                     ) {
                         Text("RP", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = Color.White)
@@ -70,67 +71,109 @@ fun AdminDetailAkunScreen(
                     Spacer(modifier = Modifier.width(16.dp))
 
                     Column {
-                        Text(userName, fontWeight = FontWeight.Bold, fontSize = 18.sp)
-                        Text("Guru • Matematika, IPA", fontSize = 11.sp, color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.8f))
+                        Text("Rani Puspitasari", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = Color.White)
+                        Spacer(modifier = Modifier.height(2.dp))
+                        Text("Guru • Matematika", fontSize = 12.sp, color = Color(0xFF94A3B8))
                     }
                 }
             }
 
-            Card(
+            // Info Detail
+            Surface(
                 modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(16.dp),
-                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
+                shape = RoundedCornerShape(12.dp),
+                color = MaterialTheme.colorScheme.surface,
+                border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.15f))
             ) {
                 Column(modifier = Modifier.padding(16.dp)) {
-                    Text("Email", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                    Text("rani.p@scolarsia.sch.id", fontWeight = FontWeight.Bold, fontSize = 13.sp)
-
+                    Text("Email", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Text("rani.p@scolarsia.sch.id", fontSize = 14.sp, fontWeight = FontWeight.Medium)
+                    
                     HorizontalDivider(modifier = Modifier.padding(vertical = 12.dp), color = MaterialTheme.colorScheme.outline.copy(alpha = 0.15f))
-
-                    Text("Peran", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                    Text("Guru mapel", fontWeight = FontWeight.Bold, fontSize = 13.sp)
-
-                    HorizontalDivider(modifier = Modifier.padding(vertical = 12.dp), color = MaterialTheme.colorScheme.outline.copy(alpha = 0.15f))
-
+                    
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Column {
-                            Text("Status", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                            Text("Aktif", fontWeight = FontWeight.Bold, fontSize = 13.sp)
+                            Text("Peran", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            Spacer(modifier = Modifier.height(4.dp))
+                            Text("Guru mapel", fontSize = 14.sp, fontWeight = FontWeight.Medium)
                         }
-                        Badge(containerColor = Color(0xFFDCFCE7)) {
-                            Text("Aktif", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = Color(0xFF166534), modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp))
+                        Surface(
+                            shape = RoundedCornerShape(12.dp),
+                            color = Color(0xFFEFF6FF)
+                        ) {
+                            Text("Aktif", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = PrimaryBlue, modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp))
+                        }
+                    }
+                    
+                    HorizontalDivider(modifier = Modifier.padding(vertical = 12.dp), color = MaterialTheme.colorScheme.outline.copy(alpha = 0.15f))
+                    
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Column {
+                            Text("Status", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            Spacer(modifier = Modifier.height(4.dp))
+                            Text("Aktif", fontSize = 14.sp, fontWeight = FontWeight.Medium)
+                        }
+                        
+                        Surface(
+                            shape = RoundedCornerShape(12.dp),
+                            color = Color(0xFFECFDF5)
+                        ) {
+                            Text("Aktif", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = Color(0xFF10B981), modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp))
                         }
                     }
                 }
             }
+            
+            Surface(
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(12.dp),
+                color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+            ) {
+                Text(
+                    text = "Relasi orang tua dan siswa diatur oleh administrator sekolah.",
+                    fontSize = 11.sp,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(16.dp)
+                )
+            }
 
             Spacer(modifier = Modifier.weight(1f))
 
-            Button(
-                onClick = onNavigateToPenugasanGuru,
-                modifier = Modifier.fillMaxWidth().height(48.dp),
-                shape = RoundedCornerShape(12.dp),
-                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF2563EB))
-            ) {
-                Text("Penugasan & Data Pengajar", fontWeight = FontWeight.Bold, color = Color.White)
-            }
-
+            // Action Buttons
             OutlinedButton(
-                onClick = { /* Reset sandi */ },
-                modifier = Modifier.fillMaxWidth().height(48.dp),
-                shape = RoundedCornerShape(12.dp)
+                onClick = onNavigateToUbahPeran,
+                modifier = Modifier.fillMaxWidth().height(50.dp),
+                shape = RoundedCornerShape(12.dp),
+                border = androidx.compose.foundation.BorderStroke(1.dp, PrimaryBlue),
+                colors = ButtonDefaults.outlinedButtonColors(contentColor = PrimaryBlue)
+            ) {
+                Text("Ubah peran", fontWeight = FontWeight.Bold)
+            }
+            
+            OutlinedButton(
+                onClick = { /* TODO */ },
+                modifier = Modifier.fillMaxWidth().height(50.dp),
+                shape = RoundedCornerShape(12.dp),
+                border = androidx.compose.foundation.BorderStroke(1.dp, PrimaryBlue),
+                colors = ButtonDefaults.outlinedButtonColors(contentColor = PrimaryBlue)
             ) {
                 Text("Reset kata sandi", fontWeight = FontWeight.Bold)
             }
-
+            
             OutlinedButton(
-                onClick = { /* Nonaktifkan */ },
-                modifier = Modifier.fillMaxWidth().height(48.dp),
+                onClick = { /* TODO */ },
+                modifier = Modifier.fillMaxWidth().height(50.dp),
                 shape = RoundedCornerShape(12.dp),
+                border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.error),
                 colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.error)
             ) {
                 Text("Nonaktifkan akun", fontWeight = FontWeight.Bold)

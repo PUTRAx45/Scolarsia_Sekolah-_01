@@ -31,10 +31,16 @@ import com.google.firebase.auth.auth
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun WaliProfilScreen(
+    userName: String = "Pengguna",
+    userRole: com.example.kawansekolah.data.model.UserRole = com.example.kawansekolah.data.model.UserRole.WALI_KELAS,
+    isViewAsMode: Boolean = false,
+    viewAsRoleName: String = "",
+    onBackToAdminClick: () -> Unit = {},
     onLogoutClick: () -> Unit = {},
     onUbahKataSandiClick: () -> Unit = {},
     onPrivasiNotifikasiClick: () -> Unit = {},
-    onPerangkatSesiClick: () -> Unit = {}
+    onPerangkatSesiClick: () -> Unit = {},
+    onBeralihPeran: () -> Unit = {}
 ) {
     var showLogoutDialog by remember { mutableStateOf(false) }
 
@@ -108,6 +114,34 @@ fun WaliProfilScreen(
         TopAppBar(
             title = { Text("Profil Saya", fontWeight = FontWeight.Bold) }
         )
+        
+        if (isViewAsMode) {
+            Surface(
+                color = MaterialTheme.colorScheme.tertiaryContainer,
+                contentColor = MaterialTheme.colorScheme.onTertiaryContainer,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 6.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = "Mode admin: melihat sebagai $viewAsRoleName",
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.Medium
+                    )
+                    TextButton(
+                        onClick = onBackToAdminClick,
+                        contentPadding = PaddingValues(horizontal = 8.dp, vertical = 2.dp)
+                    ) {
+                        Text("Kembali ke Admin", fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                    }
+                }
+            }
+        }
 
         Column(
             modifier = Modifier
@@ -163,6 +197,53 @@ fun WaliProfilScreen(
                             text = email,
                             fontSize = 11.sp,
                             color = Color(0xFF64748B)
+                        )
+                    }
+                }
+            }
+
+            // Role Switch Section
+            Text(
+                text = "Peralihan peran",
+                style = MaterialTheme.typography.labelLarge,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(12.dp),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.2f))
+            ) {
+                Column {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable { onBeralihPeran() }
+                            .padding(16.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Icon(
+                                imageVector = if (userRole == com.example.kawansekolah.data.model.UserRole.GURU) Icons.Default.SupervisedUserCircle else Icons.Default.CoPresent,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.size(24.dp)
+                            )
+                            Spacer(modifier = Modifier.width(16.dp))
+                            Column {
+                                Text(
+                                    text = if (userRole == com.example.kawansekolah.data.model.UserRole.GURU) "Beralih ke Wali Kelas" else "Beralih ke Guru",
+                                    style = MaterialTheme.typography.bodyLarge,
+                                    fontWeight = FontWeight.Medium
+                                )
+                            }
+                        }
+                        Icon(
+                            imageVector = Icons.Default.ChevronRight,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
                 }

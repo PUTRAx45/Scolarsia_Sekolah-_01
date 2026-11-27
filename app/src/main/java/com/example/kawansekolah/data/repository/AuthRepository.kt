@@ -6,6 +6,7 @@ import com.example.kawansekolah.BuildConfig
 import com.example.kawansekolah.FirebaseEmulatorHelper
 import com.example.kawansekolah.data.model.FirestoreCollections
 import com.example.kawansekolah.data.model.User
+import com.example.kawansekolah.demo.DemoAccounts
 import com.example.kawansekolah.data.model.UserRole
 import com.example.kawansekolah.utils.DeviceSessionManager
 import com.example.kawansekolah.utils.DevHost
@@ -30,7 +31,7 @@ object AuthRepository {
     private val auth: FirebaseAuth get() = Firebase.auth
     private val firestore: FirebaseFirestore get() = Firebase.firestore
 
-    private var secondaryAuth: FirebaseAuth? = null
+
 
     // In-Memory User Data Cache
     private val userMemoryCache = mutableMapOf<String, User>()
@@ -48,25 +49,6 @@ object AuthRepository {
     fun clearCache() {
         userMemoryCache.clear()
         activeUserUid = null
-    }
-
-    private fun getSecondaryAuth(context: Context): FirebaseAuth {
-        if (secondaryAuth == null) {
-            val app = try {
-                FirebaseApp.getInstance("SecondaryAuth")
-            } catch (e: Exception) {
-                val options = FirebaseApp.getInstance().options
-                FirebaseApp.initializeApp(context, options, "SecondaryAuth")
-            }
-            val secAuth = FirebaseAuth.getInstance(app)
-            if (BuildConfig.USE_EMULATOR) {
-                try {
-                    secAuth.useEmulator(DevHost.getHost().ifBlank { "10.0.2.2" }, 9099)
-                } catch (_: Exception) {}
-            }
-            secondaryAuth = secAuth
-        }
-        return secondaryAuth!!
     }
 
     fun getCurrentUserUid(): String? = auth.currentUser?.uid ?: activeUserUid
@@ -88,13 +70,16 @@ object AuthRepository {
                 val emailVal = doc1.getString("email") ?: parsed?.email ?: ""
                 val roleVal = doc1.getString("role") ?: parsed?.role ?: "SISWA"
                 val isAktif = doc1.getBoolean("aktif") ?: doc1.getBoolean("isActive") ?: parsed?.aktif ?: true
+                val isSuperAdmin = doc1.getBoolean("isSuperAdmin") ?: parsed?.isSuperAdmin ?: false
 
                 userDoc = User(
                     uid = uid,
                     name = namaVal,
                     email = emailVal,
                     role = roleVal,
-                    aktif = isAktif
+                    aktif = isAktif,
+                    roles = doc1.get("roles") as? List<String> ?: emptyList(),
+                    isSuperAdmin = isSuperAdmin
                 )
             } else {
                 // Fallback to users collection
@@ -105,13 +90,16 @@ object AuthRepository {
                     val emailVal = doc2.getString("email") ?: parsed?.email ?: ""
                     val roleVal = doc2.getString("role") ?: parsed?.role ?: "SISWA"
                     val isAktif = doc2.getBoolean("aktif") ?: doc2.getBoolean("isActive") ?: parsed?.aktif ?: true
+                    val isSuperAdmin = doc2.getBoolean("isSuperAdmin") ?: parsed?.isSuperAdmin ?: false
 
                     userDoc = User(
                         uid = uid,
                         name = namaVal,
                         email = emailVal,
                         role = roleVal,
-                        aktif = isAktif
+                        aktif = isAktif,
+                        roles = doc2.get("roles") as? List<String> ?: emptyList(),
+                        isSuperAdmin = isSuperAdmin
                     )
                 }
             }
@@ -138,14 +126,15 @@ object AuthRepository {
     suspend fun loginWithEmailOrNis(
         identifier: String,
         pass: String,
-        expectedRole: UserRole = UserRole.SISWA,
+        expectedRole: UserRole,
         context: Context? = null
     ): User {
         return withTimeout(10_000L) {
-            val email = if (identifier.contains("@")) {
-                identifier.trim()
+            val normalizedIdentifier = identifier.trim().lowercase()
+            val email = if (normalizedIdentifier.contains("@")) {
+                normalizedIdentifier
             } else {
-                "${identifier.trim()}@scolarsia.ac.id"
+                "${normalizedIdentifier}@scolarsia.ac.id"
             }
 
             val appOptions = try { FirebaseApp.getInstance().options } catch (_: Exception) { null }
@@ -213,10 +202,10 @@ object AuthRepository {
                 throw IllegalStateException("Gagal masuk Auth ($errorCode): $msg")
             } catch (e: FirebaseAuthInvalidUserException) {
                 Log.w("ScolarsiaAuth", "Login gagal: Email/NISN '$email' tidak ditemukan pada Auth Emulator.")
-                throw IllegalStateException("Akun / NISN tidak ditemukan. Silakan periksa kembali.")
+                throw IllegalStateException("Akun belum terdaftar")
             } catch (e: FirebaseAuthInvalidCredentialsException) {
                 Log.w("ScolarsiaAuth", "Login gagal: Kata sandi untuk '$email' salah.")
-                throw IllegalStateException("Kata sandi yang Anda masukkan salah. Silakan periksa kembali.")
+                throw IllegalStateException("Email atau kata sandi salah")
             } catch (e: TimeoutCancellationException) {
                 val targetHost = DevHost.getHost(context).ifBlank { "10.0.2.2" }
                 Log.e("ScolarsiaAuth", "Login timeout: Tidak bisa menjangkau server di $targetHost:9099")
@@ -241,7 +230,7 @@ object AuthRepository {
                 auth.signOut()
                 val targetHost = DevHost.getHost(context).ifBlank { "10.0.2.2" }
                 if (e.code == FirebaseFirestoreException.Code.UNAVAILABLE) {
-                    throw IllegalStateException("Tidak bisa menjangkau Firestore emulator di $targetHost:8081. Pastikan laptop menyala, satu Wi-Fi, dan port 8081 terbuka (buka-firewall.bat).")
+                    throw IllegalStateException("Server belum siap")
                 } else {
                     throw IllegalStateException("Gagal membaca Firestore: ${e.message} (Kode: ${e.code})")
                 }
@@ -260,28 +249,20 @@ object AuthRepository {
                 throw IllegalStateException("Akun dinonaktifkan. Silakan hubungi administrator sekolah.")
             }
 
-            // 4. Verify Expected Role
-            val actualRoleNorm = normalizeRole(userProfile.role)
-            val expectedRoleNorm = normalizeRole(expectedRole.name)
-
-            if (actualRoleNorm != expectedRoleNorm) {
-                // Guru dan Wali Kelas diperbolehkan saling mengakses (dijadikan satu)
-                val isGuruOrWali = (actualRoleNorm == "GURU" || actualRoleNorm == "WALI_KELAS") && 
-                                   (expectedRoleNorm == "GURU" || expectedRoleNorm == "WALI_KELAS")
-                
-                if (!isGuruOrWali) {
-                    auth.signOut()
-                    Log.w("ScolarsiaAuth", "UID: $uid | Role Firestore: $actualRoleNorm | Role Kartu: $expectedRoleNorm | Keputusan: REJECTED (Role Mismatch)")
-                    throw IllegalStateException("Peran tidak cocok (Akun ini mendaftar sebagai ${userProfile.userRole.label}, bukan ${expectedRole.label}).")
-                }
+            // 4. Verify Allowed Role
+            if (!userProfile.roles.contains(expectedRole.name)) {
+                auth.signOut()
+                Log.w("ScolarsiaAuth", "Login DIBLOKIR: Akun tidak punya peran ${expectedRole.name}.")
+                throw IllegalStateException("Akun ini tidak memiliki akses sebagai ${expectedRole.label}.")
             }
 
             // 5. Track device session in Firestore if context is available
             context?.let { ctx ->
                 DeviceSessionManager.saveCurrentSession(ctx, uid)
             }
-
-            Log.i("ScolarsiaAuth", "UID: $uid | Role Firestore: $actualRoleNorm | Role Kartu: $expectedRoleNorm | Keputusan: SUCCESS")
+            
+            val actualRoleNorm = normalizeRole(userProfile.role)
+            Log.i("ScolarsiaAuth", "UID: $uid | Role Firestore: $actualRoleNorm | Keputusan: SUCCESS")
             setCachedUser(userProfile)
             userProfile
         }
@@ -296,26 +277,7 @@ object AuthRepository {
         className: String,
         context: Context
     ): User {
-        val secAuth = getSecondaryAuth(context)
-        val authRes = secAuth.createUserWithEmailAndPassword(email, pass).await()
-        val uid = authRes.user?.uid ?: throw IllegalStateException("Gagal mendaftarkan akun guru di Firebase Auth")
-
-        val newUser = User(
-            uid = uid,
-            name = name,
-            email = email,
-            role = "GURU",
-            schoolLevel = schoolLevel,
-            grade = grade,
-            className = className,
-            teacherId = uid,
-            aktif = true
-        )
-
-        firestore.collection("pengguna").document(uid).set(newUser).await()
-        firestore.collection("users").document(uid).set(newUser).await()
-        secAuth.signOut()
-        return newUser
+        return createAccountViaBackend(name, email, pass, "GURU", context)
     }
 
     suspend fun createParentAccount(
@@ -325,23 +287,7 @@ object AuthRepository {
         pass: String,
         linkedStudentIds: List<String>
     ): User {
-        val secAuth = getSecondaryAuth(context)
-        val authRes = secAuth.createUserWithEmailAndPassword(email, pass).await()
-        val uid = authRes.user?.uid ?: throw IllegalStateException("Gagal mendaftarkan akun Orang Tua di Firebase Auth")
-
-        val newUser = User(
-            uid = uid,
-            name = name,
-            email = email,
-            role = "ORANG_TUA",
-            studentIds = linkedStudentIds,
-            aktif = true
-        )
-
-        firestore.collection("pengguna").document(uid).set(newUser).await()
-        firestore.collection("users").document(uid).set(newUser).await()
-        secAuth.signOut()
-        return newUser
+        return createAccountViaBackend(name, email, pass, "ORANG_TUA", context)
     }
 
     suspend fun createStudentAccount(
@@ -353,25 +299,62 @@ object AuthRepository {
         grade: Int,
         className: String
     ): User {
-        val secAuth = getSecondaryAuth(context)
         val syntheticEmail = "${nis.trim()}@scolarsia.ac.id"
-        val authRes = secAuth.createUserWithEmailAndPassword(syntheticEmail, pass).await()
-        val uid = authRes.user?.uid ?: throw IllegalStateException("Gagal mendaftarkan akun Siswa di Firebase Auth")
-
-        val newUser = User(
-            uid = uid,
-            name = name,
-            email = syntheticEmail,
-            role = "SISWA",
-            schoolLevel = schoolLevel,
-            grade = grade,
-            className = className,
-            aktif = true
-        )
-
-        firestore.collection("pengguna").document(uid).set(newUser).await()
-        firestore.collection("users").document(uid).set(newUser).await()
-        secAuth.signOut()
-        return newUser
+        return createAccountViaBackend(name, syntheticEmail, pass, "SISWA", context)
+    }
+    
+    private suspend fun createAccountViaBackend(
+        name: String,
+        email: String,
+        pass: String,
+        role: String,
+        context: Context
+    ): User {
+        return withContext(Dispatchers.IO) {
+            try {
+                // Ensure current user is an admin
+                val currentUser = auth.currentUser ?: throw IllegalStateException("Anda harus login sebagai admin untuk membuat akun.")
+                val token = currentUser.getIdToken(true).await().token ?: throw IllegalStateException("Gagal mendapatkan token autentikasi.")
+                
+                val baseUrl = DevHost.getBackendBaseUrl()
+                val url = java.net.URL(baseUrl + "admin/users")
+                val conn = url.openConnection() as java.net.HttpURLConnection
+                conn.requestMethod = "POST"
+                conn.setRequestProperty("Content-Type", "application/json")
+                conn.setRequestProperty("Authorization", "Bearer $token")
+                conn.doOutput = true
+                
+                val jsonInputString = """
+                    {
+                        "name": "$name",
+                        "email": "$email",
+                        "pass": "$pass",
+                        "role": "$role"
+                    }
+                """.trimIndent()
+                
+                conn.outputStream.use { os ->
+                    val input = jsonInputString.toByteArray(Charsets.UTF_8)
+                    os.write(input, 0, input.size)
+                }
+                
+                val responseCode = conn.responseCode
+                if (responseCode in 200..299) {
+                    // Success, parse if needed, but we can just construct a User object
+                    User(
+                        uid = "new_uid", // Backend handles real UID. This is just for local immediate state if needed
+                        name = name,
+                        email = email,
+                        role = role,
+                        aktif = true
+                    )
+                } else {
+                    val errorStream = conn.errorStream?.bufferedReader()?.use { it.readText() } ?: ""
+                    throw IllegalStateException("Gagal membuat akun di server (HTTP $responseCode): $errorStream")
+                }
+            } catch (e: Exception) {
+                throw IllegalStateException("Gagal membuat akun: ${e.message}")
+            }
+        }
     }
 }

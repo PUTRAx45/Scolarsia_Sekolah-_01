@@ -3,13 +3,17 @@ package com.example.kawansekolah.ui.admin
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -19,18 +23,10 @@ import com.example.kawansekolah.ui.theme.PrimaryBlue
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AdminDaftarAkunScreen(
-    onBackClick: () -> Unit = {},
-    onImportCsvClick: () -> Unit = {},
-    onNavigateToPenugasanGuru: () -> Unit = {},
-    onAccountCreated: () -> Unit = {}
+    onBackClick: () -> Unit = {}
 ) {
-    var name by remember { mutableStateOf("") }
-    var email by remember { mutableStateOf("") }
-    var tempPass by remember { mutableStateOf("") }
-    var selectedRole by remember { mutableStateOf("Guru") }
-    var expandedRole by remember { mutableStateOf(false) }
-
-    val isFormValid = name.isNotBlank() && email.isNotBlank() && tempPass.isNotBlank()
+    var peran by remember { mutableStateOf("Orang tua") }
+    var expanded by remember { mutableStateOf(false) }
 
     Column(
         modifier = Modifier
@@ -38,113 +34,159 @@ fun AdminDaftarAkunScreen(
             .background(MaterialTheme.colorScheme.background)
             .statusBarsPadding()
             .navigationBarsPadding()
-            .imePadding()
     ) {
         TopAppBar(
-            title = { Text("Daftarkan akun", fontWeight = FontWeight.Bold) },
+            title = { Text("Daftarkan akun", fontWeight = FontWeight.Bold, fontSize = 18.sp) },
             navigationIcon = {
                 IconButton(onClick = onBackClick) {
                     Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Kembali")
                 }
-            },
-            colors = TopAppBarDefaults.topAppBarColors(
-                containerColor = MaterialTheme.colorScheme.background,
-                scrolledContainerColor = MaterialTheme.colorScheme.background
-            )
+            }
         )
 
         Column(
             modifier = Modifier
                 .weight(1f)
                 .verticalScroll(rememberScrollState())
-                .padding(20.dp),
-            verticalArrangement = Arrangement.spacedBy(14.dp)
+                .padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             OutlinedTextField(
-                value = name,
-                onValueChange = { name = it },
-                label = { Text("Nama lengkap") },
-                placeholder = { Text("Contoh: Budi Santoso") },
+                value = "",
+                onValueChange = { },
                 modifier = Modifier.fillMaxWidth(),
+                label = { Text("Nama lengkap") },
+                placeholder = { Text("Budi Santoso") },
                 singleLine = true,
                 shape = RoundedCornerShape(12.dp)
             )
 
             OutlinedTextField(
-                value = email,
-                onValueChange = { email = it },
+                value = "",
+                onValueChange = { },
+                modifier = Modifier.fillMaxWidth(),
                 label = { Text("Email / username") },
                 placeholder = { Text("nama@sekolah.sch.id") },
-                modifier = Modifier.fillMaxWidth(),
                 singleLine = true,
                 shape = RoundedCornerShape(12.dp)
             )
 
             OutlinedTextField(
-                value = tempPass,
-                onValueChange = { tempPass = it },
+                value = "",
+                onValueChange = { },
+                modifier = Modifier.fillMaxWidth(),
                 label = { Text("Kata sandi awal") },
                 placeholder = { Text("Buat kata sandi sementara") },
-                modifier = Modifier.fillMaxWidth(),
                 singleLine = true,
                 shape = RoundedCornerShape(12.dp)
             )
-
-            // Dropdown Peran
+            
             ExposedDropdownMenuBox(
-                expanded = expandedRole,
-                onExpandedChange = { expandedRole = !expandedRole }
+                expanded = expanded,
+                onExpandedChange = { expanded = it }
             ) {
                 OutlinedTextField(
-                    value = selectedRole,
+                    value = peran,
                     onValueChange = {},
                     readOnly = true,
                     label = { Text("Peran pengguna") },
-                    trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expandedRole) },
+                    trailingIcon = {
+                        ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded)
+                    },
                     modifier = Modifier.fillMaxWidth().menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable, true),
                     shape = RoundedCornerShape(12.dp)
                 )
-
                 ExposedDropdownMenu(
-                    expanded = expandedRole,
-                    onDismissRequest = { expandedRole = false }
+                    expanded = expanded,
+                    onDismissRequest = { expanded = false }
                 ) {
-                    listOf("Guru", "Wali kelas", "Siswa", "Orang tua", "Admin").forEach { roleOption ->
+                    listOf("Guru", "Siswa", "Orang tua").forEach { selectionOption ->
                         DropdownMenuItem(
-                            text = { Text(roleOption) },
+                            text = { Text(selectionOption) },
                             onClick = {
-                                selectedRole = roleOption
-                                expandedRole = false
+                                peran = selectionOption
+                                expanded = false
                             }
                         )
                     }
                 }
             }
+            
+            if (peran == "Orang tua") {
+                Text("Hubungkan ke anak", fontWeight = FontWeight.Bold, fontSize = 14.sp)
+                
+                OutlinedTextField(
+                    value = "",
+                    onValueChange = { },
+                    modifier = Modifier.fillMaxWidth(),
+                    placeholder = { Text("Cari nama atau NIS siswa", fontSize = 14.sp) },
+                    leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
+                    singleLine = true,
+                    shape = RoundedCornerShape(12.dp)
+                )
+                
+                // Terhubung
+                Surface(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(12.dp),
+                    color = MaterialTheme.colorScheme.surface,
+                    border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFF10B981))
+                ) {
+                    Row(
+                        modifier = Modifier.padding(16.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .size(40.dp)
+                                .clip(CircleShape)
+                                .background(Color(0xFFEFF6FF)),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text("AP", fontSize = 14.sp, fontWeight = FontWeight.Bold, color = PrimaryBlue)
+                        }
 
-            Text("Pengguna wajib mengubah kata sandi saat pertama masuk.", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Spacer(modifier = Modifier.width(12.dp))
 
-            if (selectedRole == "Guru" || selectedRole == "Wali kelas") {
-                TextButton(onClick = onNavigateToPenugasanGuru) {
-                    Text("Atur Penugasan & Data Pengajar Guru ->", fontSize = 13.sp, fontWeight = FontWeight.Bold, color = PrimaryBlue)
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text("Andi Pratama", fontWeight = FontWeight.Bold, fontSize = 14.sp)
+                            Text("NIS 09231 • IX A", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        }
+
+                        Text("Terhubung", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = Color(0xFF10B981))
+                    }
+                }
+            } else {
+                Surface(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(12.dp),
+                    color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+                ) {
+                    Text(
+                        text = "Pengguna wajib mengubah kata sandi saat pertama masuk.",
+                        fontSize = 11.sp,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(16.dp)
+                    )
                 }
             }
 
-            Spacer(modifier = Modifier.height(6.dp))
-
-            TextButton(onClick = onImportCsvClick) {
-                Text("Impor banyak akun lewat CSV ->", fontSize = 13.sp, fontWeight = FontWeight.Bold, color = PrimaryBlue)
+            Spacer(modifier = Modifier.weight(1f))
+            
+            TextButton(
+                onClick = { /* TODO */ },
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text("Impor banyak akun lewat CSV", fontWeight = FontWeight.Bold, color = PrimaryBlue)
             }
 
-            Spacer(modifier = Modifier.weight(1f))
-
             Button(
-                onClick = onAccountCreated,
-                enabled = isFormValid,
+                onClick = { /* TODO */ },
                 modifier = Modifier.fillMaxWidth().height(50.dp),
                 shape = RoundedCornerShape(12.dp),
                 colors = ButtonDefaults.buttonColors(containerColor = PrimaryBlue)
             ) {
-                Text("Daftarkan akun", fontWeight = FontWeight.Bold, fontSize = 15.sp, color = Color.White)
+                Text("Daftarkan akun", fontWeight = FontWeight.Bold)
             }
         }
     }

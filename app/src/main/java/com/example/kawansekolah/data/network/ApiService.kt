@@ -57,7 +57,22 @@ interface ApiService {
                 throw exception ?: IOException("Gagal terhubung ke server AI Scolarsia")
             }
 
+            val dynamicHostInterceptor = Interceptor { chain ->
+                var request = chain.request()
+                val currentBaseUrl = com.example.kawansekolah.utils.DevHost.getBackendBaseUrl().trimEnd('/')
+                
+                // Construct new URL dynamically based on latest DevHost IP
+                val urlBuilder = request.url.newBuilder()
+                    .scheme(if (currentBaseUrl.startsWith("https")) "https" else "http")
+                    .host(currentBaseUrl.replace("https://", "").replace("http://", "").substringBefore(":"))
+                    .port(currentBaseUrl.substringAfterLast(":", "80").substringBefore("/").toIntOrNull() ?: 80)
+                    
+                request = request.newBuilder().url(urlBuilder.build()).build()
+                chain.proceed(request)
+            }
+
             val client = OkHttpClient.Builder()
+                .addInterceptor(dynamicHostInterceptor)
                 .addInterceptor(retryInterceptor)
                 .addInterceptor(logging)
                 .connectTimeout(90, TimeUnit.SECONDS)
@@ -68,7 +83,7 @@ interface ApiService {
             val baseUrl = com.example.kawansekolah.utils.DevHost.getBackendBaseUrl()
 
             return Retrofit.Builder()
-                .baseUrl(baseUrl)
+                .baseUrl(if (baseUrl.isNotBlank()) baseUrl else "http://localhost/")
                 .client(client)
                 .addConverterFactory(GsonConverterFactory.create())
                 .build()

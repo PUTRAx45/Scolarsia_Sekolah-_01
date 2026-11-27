@@ -20,9 +20,9 @@ object RouteGuard {
         val isAdminRoute = adminRoutes.contains(route)
 
         return when (role) {
-            UserRole.ADMIN -> isAdminRoute
-            UserRole.GURU -> !isAdminRoute && route in setOf("beranda", "nilai", "insight_page", "profil", "guru_input", "unggah_csv", "guru_dashboard")
-            UserRole.WALI_KELAS -> !isAdminRoute && route in setOf("beranda", "nilai", "insight_page", "profil", "rekap_wali", "statistik")
+            UserRole.ADMIN -> isAdminRoute || route in setOf("beranda", "nilai", "insight_page", "profil", "guru_input", "unggah_csv", "guru_dashboard", "rekap_wali", "statistik")
+            UserRole.GURU -> !isAdminRoute && route in setOf("beranda", "nilai", "insight_page", "profil", "guru_input", "unggah_csv", "guru_dashboard", "rekap_wali", "statistik")
+            UserRole.WALI_KELAS -> !isAdminRoute && route in setOf("beranda", "nilai", "insight_page", "profil", "rekap_wali", "statistik", "guru_input", "unggah_csv", "guru_dashboard")
             UserRole.SISWA -> !isAdminRoute && route in setOf("beranda", "nilai", "ai", "profil", "pelajaran")
             UserRole.ORANG_TUA -> !isAdminRoute && route in setOf("beranda", "nilai", "ai", "profil", "pelajaran")
         }

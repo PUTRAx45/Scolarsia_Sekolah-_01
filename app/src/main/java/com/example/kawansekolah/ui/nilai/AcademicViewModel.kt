@@ -68,7 +68,7 @@ class AcademicViewModel : ViewModel() {
 
             try {
                 // Timeout 8 detik per pengambilan data
-                withTimeout(8_000L) {
+                withTimeout(30_000L) {
                     val subjectEntities = AcademicRepository.getAllSubjects()
 
                     val detailsList = coroutineScope {

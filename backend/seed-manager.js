@@ -17,25 +17,11 @@ const auth = admin.auth();
 const db = admin.firestore();
 
 const DUMMY_USERS = [
-  { uid: 'admin_01', email: 'admin12@scolarsia.ac.id', name: 'Arif Setiawan, S.Kom.', role: 'admin', password: '1a2d3m4i5n' },
-  { uid: 'guru_01', email: 'guru12@scolarsia.ac.id', name: 'Budi Santoso, S.Pd.', role: 'guru', classes: ['9-A', '9-B'], password: '1g2u3r4u' },
-  { uid: 'wali_01', email: 'walikelas12@scolarsia.ac.id', name: 'Siti Aminah, M.Pd.', role: 'wali_kelas', classes: ['9-A'], password: '1w2a3l4i' },
-
-  // 6 Siswa Kelas 9-A
-  { uid: 'siswa_01', email: 'siswa01@scolarsia.ac.id', name: 'Ahmad Budi', role: 'siswa', nis: '09231', class: '9-A', password: '1s2i3w4a' },
-  { uid: 'siswa_02', email: 'siswa02@scolarsia.ac.id', name: 'Siti Rahma', role: 'siswa', nis: '09232', class: '9-A', password: '1s2i3w4a' },
-  { uid: 'siswa_03', email: 'siswa03@scolarsia.ac.id', name: 'Dewi Lestari', role: 'siswa', nis: '09233', class: '9-A', password: '1s2i3w4a' },
-  { uid: 'siswa_04', email: 'siswa04@scolarsia.ac.id', name: 'Fajar Pratama', role: 'siswa', nis: '09234', class: '9-A', password: '1s2i3w4a' },
-  { uid: 'siswa_05', email: 'siswa05@scolarsia.ac.id', name: 'Bima Saputra', role: 'siswa', nis: '09235', class: '9-A', password: '1s2i3w4a' },
-  { uid: 'siswa_06', email: 'siswa06@scolarsia.ac.id', name: 'Aulia Putri', role: 'siswa', nis: '09236', class: '9-A', password: '1s2i3w4a' },
-
-  // 6 Orang Tua
-  { uid: 'ortu_01', email: 'ortu_siswa01@scolarsia.ac.id', name: 'Bapak Ahmad', role: 'orang_tua', studentId: 'siswa_01', password: '1o2r3a4n5g' },
-  { uid: 'ortu_02', email: 'ortu_siswa02@scolarsia.ac.id', name: 'Ibu Rahma', role: 'orang_tua', studentId: 'siswa_02', password: '1o2r3a4n5g' },
-  { uid: 'ortu_03', email: 'ortu_siswa03@scolarsia.ac.id', name: 'Bapak Lestari', role: 'orang_tua', studentId: 'siswa_03', password: '1o2r3a4n5g' },
-  { uid: 'ortu_04', email: 'ortu_siswa04@scolarsia.ac.id', name: 'Bapak Pratama', role: 'orang_tua', studentId: 'siswa_04', password: '1o2r3a4n5g' },
-  { uid: 'ortu_05', email: 'ortu_siswa05@scolarsia.ac.id', name: 'Ibu Saputra', role: 'orang_tua', studentId: 'siswa_05', password: '1o2r3a4n5g' },
-  { uid: 'ortu_06', email: 'ortu_siswa06@scolarsia.ac.id', name: 'Ibu Putri', role: 'orang_tua', studentId: 'siswa_06', password: '1o2r3a4n5g' }
+  { uid: 'admin_01', email: 'admin12@scolarsia.ac.id', name: 'Arif Setiawan, S.Kom.', roles: ['ADMIN'], isSuperAdmin: true, password: '1a2d3m4i5n' },
+  { uid: 'guru_01', email: 'guru12@scolarsia.ac.id', name: 'Budi Santoso, S.Pd.', roles: ['GURU', 'WALI_KELAS'], classes: ['9-A', '9-B'], password: '1g2u3r4u' },
+  { uid: 'wali_01', email: 'walikelas12@scolarsia.ac.id', name: 'Siti Aminah, M.Pd.', roles: ['WALI_KELAS', 'GURU'], classes: ['9-A'], password: '1w2a3l4i' },
+  { uid: 'siswa_01', email: 'siswa01@scolarsia.ac.id', name: 'Ahmad Budi', roles: ['SISWA'], nis: '09231', class: '9-A', password: '1s2i3w4a' },
+  { uid: 'ortu_01', email: 'ortu_siswa01@scolarsia.ac.id', name: 'Bapak Ahmad', roles: ['ORANG_TUA'], studentId: 'siswa_01', password: '1o2r3a4n5g' }
 ];
 
 async function seedData() {
@@ -85,7 +71,7 @@ async function seedData() {
         }
       }
 
-      await auth.setCustomUserClaims(u.uid, { isDummy: true, role: u.role });
+      await auth.setCustomUserClaims(u.uid, { isDummy: true, roles: u.roles, isSuperAdmin: u.isSuperAdmin || false, role: u.roles[0].toLowerCase() });
       const statusLabel = isNew ? 'DIBUAT' : 'DIPERBARUI';
       console.log(`✅ [Auth Seed] UID: ${u.uid.padEnd(10)} | Email: ${u.email.padEnd(30)} | Status: ${statusLabel}`);
       successfulUsers.push(u);
@@ -103,7 +89,7 @@ async function seedData() {
       sekolahId: 'sekolah_01',
       nama: u.name,
       namaLengkap: u.name,
-      role: u.role,
+      roles: u.roles,
       email: u.email,
       nis: u.nis || '',
       noHp: '08123456789',
@@ -115,6 +101,7 @@ async function seedData() {
       kelasDiampu: u.classes || [],
       studentIds: u.studentId ? [u.studentId] : [],
       isDummy: true,
+      isSuperAdmin: u.isSuperAdmin || false,
       createdAt: Date.now()
     };
 
@@ -185,6 +172,7 @@ async function seedData() {
 
 async function clearDummyData() {
   console.log(`🧹 [SeedManager] Menghapus HANYA data dummy (isDummy === true)...`);
+  let deletedCount = 0;
 
   const collections = ['pengguna', 'users', 'sekolah', 'tahunAjaran', 'kelas', 'mapel', 'subMateri', 'periode', 'penugasan', 'keanggotaanKelas', 'relasiOrangTua', 'nilai', 'koreksiNilai', 'notifikasi', 'sesiPerangkat', 'insightCache', 'teaching_profiles', 'grades', 'subjects', 'topics', 'insights'];
 
@@ -195,6 +183,7 @@ async function clearDummyData() {
         const batch = db.batch();
         snapshot.docs.forEach(doc => batch.delete(doc.ref));
         await batch.commit();
+        deletedCount += snapshot.size;
         console.log(`  - Menghapus ${snapshot.size} dokumen dummy dari '${colName}'`);
       }
     } catch (e) {
@@ -206,11 +195,13 @@ async function clearDummyData() {
   for (const u of DUMMY_USERS) {
     try {
       await auth.deleteUser(u.uid);
+      deletedCount++;
       console.log(`  - Menghapus Auth dummy user: ${u.email}`);
     } catch (_) {}
   }
 
-  console.log('✅ [SeedManager] Data dummy berhasil dibersihkan!');
+  console.log(`✅ [SeedManager] Data dummy berhasil dibersihkan! (${deletedCount} terhapus)`);
+  return deletedCount;
 }
 
 async function resetDummyData() {

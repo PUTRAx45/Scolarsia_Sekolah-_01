@@ -48,6 +48,8 @@ fun MainScreen(
 ) {
     val navController = rememberNavController()
     val isKeyboardOpen = WindowInsets.isImeVisible
+    val context = androidx.compose.ui.platform.LocalContext.current
+    val sessionManager = remember(context) { com.example.kawansekolah.utils.UserSessionManager(context) }
 
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = navBackStackEntry?.destination?.route
@@ -55,13 +57,20 @@ fun MainScreen(
     // BackHandler di Beranda agar menekan Back tidak kembali ke Login / Role Selection
     val isBerandaRoute = currentRoute == "beranda" || currentRoute == "admin_beranda"
     BackHandler(enabled = isBerandaRoute) {
-        Log.d("ScolarsiaAuth", "BackHandler di Beranda aktif: Menahan tombol Back agar tidak keluar dari akun.")
+        if (sessionManager.getLoginRole() == UserRole.ADMIN && userRole != UserRole.ADMIN) {
+            sessionManager.clearViewAsRole()
+            navController.navigate("admin_beranda") {
+                popUpTo(0) { inclusive = true }
+            }
+        } else {
+            Log.d("ScolarsiaAuth", "BackHandler di Beranda aktif: Menahan tombol Back agar tidak keluar dari akun.")
+        }
     }
 
     // Guard Navigasi Antar Peran menggunakan RouteGuard utama
     LaunchedEffect(currentRoute, userRole) {
         if (currentRoute != null) {
-            val isAllowed = RouteGuard.isRouteAllowedForRole(userRole, currentRoute)
+            val isAllowed = RouteGuard.isRouteAllowedForRole(userRole, currentRoute) || sessionManager.getLoginRole() == UserRole.ADMIN
             if (!isAllowed) {
                 val homeRoute = RouteGuard.getHomeRouteForRole(userRole)
                 Log.w("ScolarsiaAuth", "Navigasi Ditolak: User ${userRole.name} dilarang mengakses route '$currentRoute'. Mengarahkan kembali ke $homeRoute.")
@@ -288,6 +297,12 @@ fun MainScreen(
                         subjects = subjects,
                         tasks = tasks,
                         unreadCount = unreadCount,
+                        isViewAsMode = sessionManager.getLoginRole() == UserRole.ADMIN && userRole != UserRole.ADMIN,
+                        viewAsRoleName = userRole.label,
+                        onBackToAdminClick = {
+                            sessionManager.clearViewAsRole()
+                            navController.navigate("admin_beranda") { popUpTo(0) { inclusive = true } }
+                        },
                         onNotificationClick = handleNotificationClick,
                         onToggleTask = toggleTask,
                         onSelectSubject = { selectedSubjectForDetail = it }
@@ -337,6 +352,12 @@ fun MainScreen(
                     userName = userName,
                     userRole = userRole.name,
                     userEmail = Firebase.auth.currentUser?.email ?: "user@scolarsia.sch.id",
+                    isViewAsMode = sessionManager.getLoginRole() == UserRole.ADMIN && userRole != UserRole.ADMIN,
+                    viewAsRoleName = userRole.label,
+                    onBackToAdminClick = {
+                        sessionManager.clearViewAsRole()
+                        navController.navigate("admin_beranda") { popUpTo(0) { inclusive = true } }
+                    },
                     onLogoutClick = onLogout,
                     onUbahKataSandiClick = { navController.navigate("ubah_kata_sandi") },
                     onPrivasiNotifikasiClick = { navController.navigate("privasi_notifikasi") },
@@ -372,18 +393,18 @@ fun MainScreen(
             if (RouteGuard.isRouteAllowedForRole(userRole, "admin_pengguna")) {
                 composable("admin_pengguna") {
                     com.example.kawansekolah.ui.admin.AdminPenggunaScreen(
-                        onNavigateToDetail = { navController.navigate("admin_detail_akun") },
-                        onNavigateToDaftarAccount = { navController.navigate("admin_daftar_akun") },
-                        onNavigateToPenugasanGuru = { navController.navigate("admin_penugasan_guru") }
+                        onBackClick = { navController.popBackStack() },
+                        onDaftarkanAkunClick = { navController.navigate("admin_daftar_akun") },
+                        onUserClick = { userName -> navController.navigate("admin_detail_akun/$userName") }
                     )
                 }
             }
             if (RouteGuard.isRouteAllowedForRole(userRole, "admin_akademik")) {
                 composable("admin_akademik") {
                     com.example.kawansekolah.ui.admin.AdminPenggunaScreen(
-                        onNavigateToDetail = { navController.navigate("admin_detail_akun") },
-                        onNavigateToDaftarAccount = { navController.navigate("admin_daftar_akun") },
-                        onNavigateToPenugasanGuru = { navController.navigate("admin_penugasan_guru") }
+                        onBackClick = { navController.popBackStack() },
+                        onDaftarkanAkunClick = { navController.navigate("admin_daftar_akun") },
+                        onUserClick = { userName -> navController.navigate("admin_detail_akun/$userName") }
                     )
                 }
             }
@@ -397,29 +418,26 @@ fun MainScreen(
             if (RouteGuard.isRouteAllowedForRole(userRole, "admin_profil")) {
                 composable("admin_profil") {
                     com.example.kawansekolah.ui.admin.AdminProfilScreen(
-                        adminName = userName,
-                        onLogoutClick = onLogout,
-                        onUbahKataSandiClick = { navController.navigate("ubah_kata_sandi") },
-                        onPrivasiNotifikasiClick = { navController.navigate("privasi_notifikasi") },
-                        onPerangkatSesiClick = { navController.navigate("perangkat_sesi") }
+                        onLogoutClick = onLogout
                     )
                 }
             }
             if (RouteGuard.isRouteAllowedForRole(userRole, "admin_detail_akun")) {
                 composable("admin_detail_akun") {
                     com.example.kawansekolah.ui.admin.AdminDetailAkunScreen(
-                        onBackClick = { navController.popBackStack() },
-                        onNavigateToPenugasanGuru = { navController.navigate("admin_penugasan_guru") }
+                        onBackClick = { navController.popBackStack() }
+                    )
+                }
+                composable("admin_detail_akun/{userName}") {
+                    com.example.kawansekolah.ui.admin.AdminDetailAkunScreen(
+                        onBackClick = { navController.popBackStack() }
                     )
                 }
             }
             if (RouteGuard.isRouteAllowedForRole(userRole, "admin_daftar_akun")) {
                 composable("admin_daftar_akun") {
                     com.example.kawansekolah.ui.admin.AdminDaftarAkunScreen(
-                        onBackClick = { navController.popBackStack() },
-                        onImportCsvClick = { navController.navigate("admin_impor_csv") },
-                        onNavigateToPenugasanGuru = { navController.navigate("admin_penugasan_guru") },
-                        onAccountCreated = { navController.popBackStack() }
+                        onBackClick = { navController.popBackStack() }
                     )
                 }
             }

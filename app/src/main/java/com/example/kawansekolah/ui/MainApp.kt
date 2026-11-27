@@ -73,12 +73,20 @@ fun MainApp(
                     val profile = AuthRepository.getUserProfile(currentUser.uid)
                     if (profile != null) {
                         val name = profile.name.ifBlank { "Pengguna" }
-                        val role = profile.userRole
+                        // Ambil role view aktif dari sessionManager jika ada
+                        val role = sessionManager.getUserRole()
+                        val loginRoleStr = profile.role.uppercase()
+                        val allowedRoles = profile.roles.mapNotNull { 
+                            try { UserRole.valueOf(it.uppercase()) } catch(e: Exception) { null } 
+                        }
+                        sessionManager.saveAllowedRoles(allowedRoles)
+                        
                         userDisplayName = name
                         userRole = role
-                        sessionManager.saveSession(name, role)
+                        sessionManager.saveSession(name, UserRole.valueOf(loginRoleStr), isSuperAdmin = profile.isSuperAdmin)
+                        sessionManager.setViewAsRole(role)
                         isLoggedIn = true
-                        Log.i("ScolarsiaAuth", "Sesi dipulihkan dari Firestore. UID: ${profile.uid}, Role: ${profile.role}, Name: $name")
+                        Log.i("ScolarsiaAuth", "Sesi dipulihkan dari Firestore. UID: ${profile.uid}, LoginRole: $loginRoleStr, ViewRole: ${role.name}, Name: $name")
                     } else {
                         Log.w("ScolarsiaAuth", "Dokumen profil tidak ditemukan pada server untuk UID: ${currentUser.uid}")
                         sessionRestoreError = "Dokumen profil tidak ditemukan pada server."
@@ -190,7 +198,12 @@ fun MainApp(
                             val finalName = user.name.ifBlank { "Pengguna" }
                             val role = user.userRole
 
-                            sessionManager.saveSession(finalName, role)
+                            val allowedRoles = user.roles.mapNotNull { 
+                                try { UserRole.valueOf(it.uppercase()) } catch(e: Exception) { null } 
+                            }
+                            
+                            sessionManager.saveAllowedRoles(allowedRoles)
+                            sessionManager.saveSession(finalName, role, isSuperAdmin = user.isSuperAdmin)
 
                             userDisplayName = finalName
                             userRole = role

@@ -40,6 +40,9 @@ fun BerandaScreen(
     subjects: List<Subject>,
     tasks: List<Task>,
     unreadCount: Int = 0,
+    isViewAsMode: Boolean = false,
+    viewAsRoleName: String = "",
+    onBackToAdminClick: () -> Unit = {},
     onNotificationClick: () -> Unit = {},
     onToggleTask: (Int) -> Unit = {},
     onSelectSubject: (Subject) -> Unit = {}
@@ -52,6 +55,9 @@ fun BerandaScreen(
         TopBarArea(
             userName = userName,
             unreadCount = unreadCount,
+            isViewAsMode = isViewAsMode,
+            viewAsRoleName = viewAsRoleName,
+            onBackToAdminClick = onBackToAdminClick,
             onNotificationClick = onNotificationClick
         )
 

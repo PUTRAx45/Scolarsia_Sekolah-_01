@@ -80,6 +80,7 @@ android {
     buildTypes {
         debug {
             buildConfigField("boolean", "USE_EMULATOR", "true")
+            buildConfigField("boolean", "DEMO_MODE", "true")
             buildConfigField("String", "DEV_HOST", "\"$devServerHostProp\"")
             buildConfigField("String", "DEV_SERVER_HOST", "\"$devServerHostProp\"")
             buildConfigField("String", "DEV_MODE", "\"$devModeProp\"")
@@ -90,6 +91,7 @@ android {
             initWith(getByName("debug"))
             matchingFallbacks.add("debug")
             buildConfigField("boolean", "USE_EMULATOR", "false")
+            buildConfigField("boolean", "DEMO_MODE", "true")
             buildConfigField("String", "DEV_HOST", "\"$devServerHostProp\"")
             buildConfigField("String", "DEV_MODE", "\"$devModeProp\"")
             buildConfigField("String", "BASE_URL", "\"https://GANTI-DENGAN-URL-BACKEND/\"")
@@ -100,6 +102,7 @@ android {
             isShrinkResources = true
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
             buildConfigField("boolean", "USE_EMULATOR", "false")
+            buildConfigField("boolean", "DEMO_MODE", "false")
             buildConfigField("String", "DEV_HOST", "\"\"")
             buildConfigField("String", "DEV_MODE", "\"\"")
             buildConfigField("String", "BASE_URL", "\"https://GANTI-DENGAN-URL-BACKEND/\"")

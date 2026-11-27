@@ -10,7 +10,6 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material3.*
@@ -29,7 +28,6 @@ import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.compose.ui.zIndex
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.kawansekolah.BuildConfig
 import com.example.kawansekolah.R
@@ -154,7 +152,8 @@ fun LoginScreen(
                 text = "Scolarsia",
                 fontSize = 26.sp,
                 fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.onBackground
+                color = MaterialTheme.colorScheme.onBackground,
+                modifier = if (BuildConfig.DEBUG) Modifier.clickable { showServerConfigDialog = true } else Modifier
             )
 
             // Role Badge Pill
@@ -334,25 +333,7 @@ fun LoginScreen(
             Spacer(modifier = Modifier.height(80.dp))
         }
 
-        // Gear Icon Button at Top Right (Debug Only)
-        if (BuildConfig.DEBUG) {
-            IconButton(
-                onClick = {
-                    showServerConfigDialog = true
-                },
-                modifier = Modifier
-                    .align(Alignment.TopEnd)
-                    .zIndex(10f)
-                    .padding(12.dp)
-                    .size(48.dp)
-            ) {
-                Icon(
-                    imageVector = Icons.Default.Settings,
-                    contentDescription = "Pengaturan Alamat Server",
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
-        }
+
     }
 
     // Dialog Konfigurasi & Tes Alamat Server 3 Layanan

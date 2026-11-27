@@ -31,6 +31,9 @@ fun ProfilScreen(
     userName: String,
     userRole: String = "SISWA",
     userEmail: String = "user@scolarsia.sch.id",
+    isViewAsMode: Boolean = false,
+    viewAsRoleName: String = "",
+    onBackToAdminClick: () -> Unit = {},
     onLogoutClick: () -> Unit = {},
     onUbahKataSandiClick: () -> Unit = {},
     onPrivasiNotifikasiClick: () -> Unit = {},
@@ -65,6 +68,34 @@ fun ProfilScreen(
                 scrolledContainerColor = MaterialTheme.colorScheme.background
             )
         )
+
+        if (isViewAsMode) {
+            Surface(
+                color = MaterialTheme.colorScheme.tertiaryContainer,
+                contentColor = MaterialTheme.colorScheme.onTertiaryContainer,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 6.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = "Mode admin: melihat sebagai $viewAsRoleName",
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.Medium
+                    )
+                    TextButton(
+                        onClick = onBackToAdminClick,
+                        contentPadding = PaddingValues(horizontal = 8.dp, vertical = 2.dp)
+                    ) {
+                        Text("Kembali ke Admin", fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                    }
+                }
+            }
+        }
 
         Column(
             modifier = Modifier

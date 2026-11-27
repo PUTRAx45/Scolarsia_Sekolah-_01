@@ -16,3 +16,5 @@ local.properties
 .env
 backend/.env
 emulator-data/
+node_modules/
+seed-firebase/node_modules/

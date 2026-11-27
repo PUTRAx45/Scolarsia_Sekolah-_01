@@ -13,7 +13,6 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ChevronRight
-import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -25,13 +24,13 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.compose.ui.zIndex
 import com.example.kawansekolah.BuildConfig
 import com.example.kawansekolah.R
 import com.example.kawansekolah.data.model.UserRole
 
 @Composable
 fun RoleSelectionScreen(
+    allowedRoles: List<UserRole> = UserRole.entries,
     onRoleSelected: (UserRole) -> Unit,
     onAdminClick: () -> Unit = {}
 ) {
@@ -81,7 +80,8 @@ fun RoleSelectionScreen(
                 text = "Scolarsia",
                 fontSize = 22.sp,
                 fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.onBackground
+                color = MaterialTheme.colorScheme.onBackground,
+                modifier = if (BuildConfig.DEBUG) Modifier.clickable { showServerConfigDialog = true } else Modifier
             )
 
             Spacer(modifier = Modifier.height(16.dp))
@@ -103,51 +103,56 @@ fun RoleSelectionScreen(
             Spacer(modifier = Modifier.height(20.dp))
 
             // 4 Role Card Items (Guru, Wali kelas, Siswa, Orang tua)
-            RoleCardItem(
-                role = UserRole.GURU,
-                title = "Guru",
-                subtitle = "Kelola penilaian mata pelajaran",
-                badgeLetter = "G",
-                badgeColor = Color(0xFFE0F2FE),
-                badgeTextColor = Color(0xFF0284C7),
-                onClick = { onRoleSelected(UserRole.GURU) }
-            )
+            if (allowedRoles.contains(UserRole.GURU)) {
+                RoleCardItem(
+                    role = UserRole.GURU,
+                    title = "Guru",
+                    subtitle = "Kelola penilaian mata pelajaran",
+                    badgeLetter = "G",
+                    badgeColor = Color(0xFFE0F2FE),
+                    badgeTextColor = Color(0xFF0284C7),
+                    onClick = { onRoleSelected(UserRole.GURU) }
+                )
+                Spacer(modifier = Modifier.height(12.dp))
+            }
 
-            Spacer(modifier = Modifier.height(12.dp))
+            if (allowedRoles.contains(UserRole.WALI_KELAS)) {
+                RoleCardItem(
+                    role = UserRole.WALI_KELAS,
+                    title = "Wali kelas",
+                    subtitle = "Rekapitulasi nilai kelas wali",
+                    badgeLetter = "W",
+                    badgeColor = Color(0xFFDBEAFE),
+                    badgeTextColor = Color(0xFF1D4ED8),
+                    onClick = { onRoleSelected(UserRole.WALI_KELAS) }
+                )
+                Spacer(modifier = Modifier.height(12.dp))
+            }
 
-            RoleCardItem(
-                role = UserRole.WALI_KELAS,
-                title = "Wali kelas",
-                subtitle = "Rekapitulasi nilai kelas wali",
-                badgeLetter = "W",
-                badgeColor = Color(0xFFDBEAFE),
-                badgeTextColor = Color(0xFF1D4ED8),
-                onClick = { onRoleSelected(UserRole.WALI_KELAS) }
-            )
+            if (allowedRoles.contains(UserRole.SISWA)) {
+                RoleCardItem(
+                    role = UserRole.SISWA,
+                    title = "Siswa",
+                    subtitle = "Lihat nilai & rekomendasi belajar",
+                    badgeLetter = "S",
+                    badgeColor = Color(0xFFDEF7EC),
+                    badgeTextColor = Color(0xFF0E9F6E),
+                    onClick = { onRoleSelected(UserRole.SISWA) }
+                )
+                Spacer(modifier = Modifier.height(12.dp))
+            }
 
-            Spacer(modifier = Modifier.height(12.dp))
-
-            RoleCardItem(
-                role = UserRole.SISWA,
-                title = "Siswa",
-                subtitle = "Lihat nilai & rekomendasi belajar",
-                badgeLetter = "S",
-                badgeColor = Color(0xFFDEF7EC),
-                badgeTextColor = Color(0xFF0E9F6E),
-                onClick = { onRoleSelected(UserRole.SISWA) }
-            )
-
-            Spacer(modifier = Modifier.height(12.dp))
-
-            RoleCardItem(
-                role = UserRole.ORANG_TUA,
-                title = "Orang tua",
-                subtitle = "Pantau hasil belajar anak",
-                badgeLetter = "O",
-                badgeColor = Color(0xFFFAF5FF),
-                badgeTextColor = Color(0xFF9333EA),
-                onClick = { onRoleSelected(UserRole.ORANG_TUA) }
-            )
+            if (allowedRoles.contains(UserRole.ORANG_TUA)) {
+                RoleCardItem(
+                    role = UserRole.ORANG_TUA,
+                    title = "Orang tua",
+                    subtitle = "Pantau hasil belajar anak",
+                    badgeLetter = "O",
+                    badgeColor = Color(0xFFFAF5FF),
+                    badgeTextColor = Color(0xFF9333EA),
+                    onClick = { onRoleSelected(UserRole.ORANG_TUA) }
+                )
+            }
 
             Spacer(modifier = Modifier.weight(1f))
             Spacer(modifier = Modifier.height(20.dp))
@@ -165,25 +170,7 @@ fun RoleSelectionScreen(
             Spacer(modifier = Modifier.height(12.dp))
         }
 
-        // Gear Icon Button at Top Right (Debug Only)
-        if (BuildConfig.DEBUG) {
-            IconButton(
-                onClick = {
-                    showServerConfigDialog = true
-                },
-                modifier = Modifier
-                    .align(Alignment.TopEnd)
-                    .zIndex(10f)
-                    .padding(12.dp)
-                    .size(48.dp)
-            ) {
-                Icon(
-                    imageVector = Icons.Default.Settings,
-                    contentDescription = "Pengaturan Alamat Server",
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
-        }
+
     }
 
     // Dialog Konfigurasi & Tes Alamat Server 3 Layanan

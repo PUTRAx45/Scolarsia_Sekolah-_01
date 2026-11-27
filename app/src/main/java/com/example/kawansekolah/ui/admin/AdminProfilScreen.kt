@@ -13,7 +13,6 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -36,51 +35,18 @@ import kotlinx.coroutines.withContext
 fun AdminProfilScreen(
     adminName: String = "Arif Setiawan",
     adminEmail: String = "admin12@scolarsia.ac.id",
+    isSuperAdmin: Boolean = true,
     onLogoutClick: () -> Unit = {},
     onUbahKataSandiClick: () -> Unit = {},
     onPrivasiNotifikasiClick: () -> Unit = {},
-    onPerangkatSesiClick: () -> Unit = {}
+    onPerangkatSesiClick: () -> Unit = {},
+    onViewAsRole: (com.example.kawansekolah.data.model.UserRole) -> Unit = {}
 ) {
     var showLogoutDialog by remember { mutableStateOf(false) }
-    var showConfirmClearDialog by remember { mutableStateOf(false) }
-    var seedStatusMsg by remember { mutableStateOf("") }
-    var isSeeding by remember { mutableStateOf(false) }
-
-    val coroutineScope = rememberCoroutineScope()
-    val context = LocalContext.current
 
     val activeAuthEmail = remember { Firebase.auth.currentUser?.email ?: adminEmail }
     val activeName = if (adminName.isNotBlank()) adminName else "Arif Setiawan"
     val initials = if (activeName.isNotBlank()) activeName.split(" ").map { it.take(1) }.take(2).joinToString("") else "AS"
-
-    val callSeedEndpoint: (String) -> Unit = { endpoint ->
-        isSeeding = true
-        seedStatusMsg = ""
-        coroutineScope.launch {
-            try {
-                val resMsg = withContext(Dispatchers.IO) {
-                    val baseUrl = DevHost.getBackendBaseUrl()
-                    val url = java.net.URL(baseUrl + endpoint.removePrefix("/"))
-                    val conn = url.openConnection() as java.net.HttpURLConnection
-                    conn.requestMethod = "POST"
-                    conn.connectTimeout = 5000
-                    conn.readTimeout = 5000
-                    conn.connect()
-                    val responseCode = conn.responseCode
-                    if (responseCode in 200..299) {
-                        if (endpoint.contains("clear")) "✅ Data dummy berhasil dibersihkan dari emulator!" else "✅ Data dummy berhasil diisi ke Auth & Firestore!"
-                    } else {
-                        "❌ Gagal memproses data dummy (HTTP $responseCode)"
-                    }
-                }
-                seedStatusMsg = resMsg
-            } catch (e: Exception) {
-                seedStatusMsg = "❌ Kendala server backend lokal: ${e.message}"
-            } finally {
-                isSeeding = false
-            }
-        }
-    }
 
     Column(
         modifier = Modifier
@@ -93,7 +59,8 @@ fun AdminProfilScreen(
             title = {
                 Text(
                     text = "Profil saya",
-                    style = MaterialTheme.typography.titleLarge
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.Bold
                 )
             },
             colors = TopAppBarDefaults.topAppBarColors(
@@ -112,16 +79,61 @@ fun AdminProfilScreen(
             // Dark Navy Profile Header Card
             DarkProfileHeaderCard(
                 title = activeName,
-                subtitle = "Administrator Sekolah • Scolarsia",
+                subtitle = "Administrator • SMP Nusantara",
                 email = activeAuthEmail,
                 initials = initials
             )
 
+            if (isSuperAdmin) {
+                Text(
+                    text = "Lihat sebagai",
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 14.sp
+                )
+
+                Surface(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(12.dp),
+                    color = MaterialTheme.colorScheme.surface,
+                    border = BorderStroke(1.dp, CardBorderStroke)
+                ) {
+                    Column {
+                        SettingRowItem(
+                            icon = Icons.Default.CoPresent,
+                            title = "Lihat sebagai Guru",
+                            subtitle = "Lihat tampilan guru",
+                            onClick = { onViewAsRole(com.example.kawansekolah.data.model.UserRole.GURU) }
+                        )
+                        HorizontalDivider(modifier = Modifier.padding(start = 52.dp, end = 16.dp), color = MaterialTheme.colorScheme.outline.copy(alpha = 0.15f))
+                        SettingRowItem(
+                            icon = Icons.Default.SupervisedUserCircle,
+                            title = "Lihat sebagai Wali Kelas",
+                            subtitle = "Lihat tampilan wali kelas",
+                            onClick = { onViewAsRole(com.example.kawansekolah.data.model.UserRole.WALI_KELAS) }
+                        )
+                        HorizontalDivider(modifier = Modifier.padding(start = 52.dp, end = 16.dp), color = MaterialTheme.colorScheme.outline.copy(alpha = 0.15f))
+                        SettingRowItem(
+                            icon = Icons.Default.Face,
+                            title = "Lihat sebagai Siswa",
+                            subtitle = "Lihat tampilan siswa",
+                            onClick = { onViewAsRole(com.example.kawansekolah.data.model.UserRole.SISWA) }
+                        )
+                        HorizontalDivider(modifier = Modifier.padding(start = 52.dp, end = 16.dp), color = MaterialTheme.colorScheme.outline.copy(alpha = 0.15f))
+                        SettingRowItem(
+                            icon = Icons.Default.FamilyRestroom,
+                            title = "Lihat sebagai Orang Tua",
+                            subtitle = "Lihat tampilan orang tua",
+                            onClick = { onViewAsRole(com.example.kawansekolah.data.model.UserRole.ORANG_TUA) }
+                        )
+                    }
+                }
+            }
+
             // Administrasi Sekolah Section
             Text(
                 text = "Administrasi sekolah",
-                style = MaterialTheme.typography.labelLarge,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
+                fontWeight = FontWeight.Bold,
+                fontSize = 14.sp
             )
 
             Card(
@@ -132,22 +144,32 @@ fun AdminProfilScreen(
             ) {
                 Column(modifier = Modifier.padding(16.dp)) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                        Icon(Icons.Default.People, contentDescription = null, tint = PrimaryBlue, modifier = Modifier.size(22.dp))
+                        Surface(
+                            shape = RoundedCornerShape(8.dp),
+                            color = androidx.compose.ui.graphics.Color(0xFFEFF6FF)
+                        ) {
+                            Icon(Icons.Default.Group, contentDescription = null, tint = PrimaryBlue, modifier = Modifier.padding(8.dp).size(20.dp))
+                        }
                         Spacer(modifier = Modifier.width(12.dp))
                         Column {
-                            Text("Kelola pengguna & peran", style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.onSurface)
-                            Text("Akun dan relasi keluarga", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            Text("Kelola pengguna & peran", fontWeight = FontWeight.Bold, fontSize = 14.sp)
+                            Text("Akun dan relasi keluarga", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
                         }
                     }
 
                     HorizontalDivider(modifier = Modifier.padding(vertical = 12.dp), color = MaterialTheme.colorScheme.outline.copy(alpha = 0.15f))
 
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                        Icon(Icons.Default.School, contentDescription = null, tint = PrimaryBlue, modifier = Modifier.size(22.dp))
+                        Surface(
+                            shape = RoundedCornerShape(8.dp),
+                            color = androidx.compose.ui.graphics.Color(0xFFEFF6FF)
+                        ) {
+                            Icon(Icons.Default.School, contentDescription = null, tint = PrimaryBlue, modifier = Modifier.padding(8.dp).size(20.dp))
+                        }
                         Spacer(modifier = Modifier.width(12.dp))
                         Column {
-                            Text("Kelola data akademik", style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.onSurface)
-                            Text("Periode, kelas, mapel, penugasan", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            Text("Kelola data akademik", fontWeight = FontWeight.Bold, fontSize = 14.sp)
+                            Text("Periode, kelas, mapel, penugasan", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
                         }
                     }
                 }
@@ -156,8 +178,8 @@ fun AdminProfilScreen(
             // Keamanan & Privasi Section
             Text(
                 text = "Keamanan & privasi akun",
-                style = MaterialTheme.typography.labelLarge,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
+                fontWeight = FontWeight.Bold,
+                fontSize = 14.sp
             )
 
             Card(
@@ -178,7 +200,7 @@ fun AdminProfilScreen(
 
                     SettingRowItem(
                         icon = Icons.Default.Security,
-                        title = "Privasi & notifikasi",
+                        title = "Privasi & Notifikasi",
                         subtitle = "Atur izin dan notifikasi",
                         onClick = onPrivasiNotifikasiClick
                     )
@@ -195,126 +217,35 @@ fun AdminProfilScreen(
                 }
             }
 
-            // Developer Seed Controls (Debug Only)
-            if (BuildConfig.DEBUG) {
-                Text(
-                    text = "Pengembang & Data Dummy (Debug)",
-                    style = MaterialTheme.typography.labelLarge,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-
-                Card(
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(16.dp),
-                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-                    border = BorderStroke(1.dp, CardBorderStroke)
-                ) {
-                    Column(
-                        modifier = Modifier.padding(16.dp),
-                        verticalArrangement = Arrangement.spacedBy(10.dp)
-                    ) {
-                        SecondaryButton(
-                            text = if (isSeeding) "Memproses..." else "Isi data dummy",
-                            onClick = { callSeedEndpoint("dev/seed") },
-                            enabled = !isSeeding,
-                            icon = Icons.Default.Add
-                        )
-
-                        DangerButton(
-                            text = "Hapus data dummy",
-                            onClick = { showConfirmClearDialog = true },
-                            enabled = !isSeeding,
-                            icon = Icons.Default.Delete
-                        )
-
-                        if (seedStatusMsg.isNotBlank()) {
-                            Text(
-                                text = seedStatusMsg,
-                                fontSize = 11.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = PrimaryBlue
-                            )
-                        }
-                    }
-                }
-            }
-
             Surface(
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(12.dp),
                 color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)
             ) {
                 Text(
-                    text = "Akses pengelolaan sekolah mengikuti kewenangan akun administrator.",
+                    text = "Akses nilai siswa mengikuti kewenangan.",
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.padding(12.dp)
                 )
             }
 
-            Spacer(modifier = Modifier.height(8.dp))
+            Spacer(modifier = Modifier.weight(1f))
 
-            // Danger Logout Button
-            DangerButton(
-                text = "Keluar dari akun",
+            OutlinedButton(
                 onClick = { showLogoutDialog = true },
-                icon = Icons.AutoMirrored.Filled.ExitToApp
-            )
+                modifier = Modifier.fillMaxWidth().height(50.dp),
+                shape = RoundedCornerShape(12.dp),
+                border = BorderStroke(1.dp, MaterialTheme.colorScheme.error.copy(alpha = 0.5f)),
+                colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.error)
+            ) {
+                Icon(Icons.AutoMirrored.Filled.ExitToApp, contentDescription = null, modifier = Modifier.size(18.dp))
+                Spacer(modifier = Modifier.width(8.dp))
+                Text("Keluar dari akun", fontWeight = FontWeight.Bold)
+            }
 
-            Spacer(modifier = Modifier.height(32.dp))
+            Spacer(modifier = Modifier.height(16.dp))
         }
-    }
-
-    if (showConfirmClearDialog) {
-        AlertDialog(
-            onDismissRequest = { showConfirmClearDialog = false },
-            title = {
-                Text(
-                    text = "Hapus Data Dummy?",
-                    style = MaterialTheme.typography.titleMedium,
-                    modifier = Modifier.fillMaxWidth()
-                )
-            },
-            text = {
-                Text(
-                    text = "HANYA data dummy (isDummy = true) yang akan dibersihkan dari Auth & Firestore emulator. Data akun asli yang dibuat admin tidak akan terhapus.",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            },
-            confirmButton = {
-                Button(
-                    onClick = {
-                        showConfirmClearDialog = false
-                        callSeedEndpoint("dev/seed-clear")
-                    },
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(12.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error)
-                ) {
-                    Text(
-                        text = "Ya, Hapus Data Dummy",
-                        style = MaterialTheme.typography.bodyLarge,
-                        fontWeight = FontWeight.Bold,
-                        color = Color.White
-                    )
-                }
-            },
-            dismissButton = {
-                OutlinedButton(
-                    onClick = { showConfirmClearDialog = false },
-                    modifier = Modifier.fillMaxWidth().padding(top = 4.dp),
-                    shape = RoundedCornerShape(12.dp)
-                ) {
-                    Text(
-                        text = "Batal",
-                        style = MaterialTheme.typography.bodyLarge,
-                        fontWeight = FontWeight.SemiBold
-                    )
-                }
-            },
-            shape = RoundedCornerShape(20.dp)
-        )
     }
 
     if (showLogoutDialog) {

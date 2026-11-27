@@ -37,8 +37,6 @@ fun AdminDaftarSekolahScreen(
     var adminPassword by remember { mutableStateOf("") }
     var isPassVisible by remember { mutableStateOf(false) }
 
-    var isRegisterTab by remember { mutableStateOf(true) }
-
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -90,13 +88,30 @@ fun AdminDaftarSekolahScreen(
 
             Spacer(modifier = Modifier.height(20.dp))
 
-            // Tab Switcher
-            TabRow(
-                selectedTabIndex = if (isRegisterTab) 0 else 1,
-                modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(12.dp))
+            // Custom Tab Switcher (Dummy)
+            Surface(
+                modifier = Modifier.fillMaxWidth().height(40.dp),
+                shape = RoundedCornerShape(20.dp),
+                color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
             ) {
-                Tab(selected = isRegisterTab, onClick = { isRegisterTab = true }, text = { Text("Daftar sekolah", fontWeight = FontWeight.Bold, fontSize = 13.sp) })
-                Tab(selected = !isRegisterTab, onClick = { onNavigateToLogin() }, text = { Text("Masuk", fontWeight = FontWeight.Bold, fontSize = 13.sp) })
+                Row(modifier = Modifier.fillMaxSize()) {
+                    Surface(
+                        modifier = Modifier.weight(1f).fillMaxHeight().padding(4.dp),
+                        shape = RoundedCornerShape(16.dp),
+                        color = MaterialTheme.colorScheme.surface,
+                        shadowElevation = 1.dp
+                    ) {
+                        Box(contentAlignment = Alignment.Center) {
+                            Text("Daftar sekolah", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = Color(0xFF2563EB))
+                        }
+                    }
+                    Box(
+                        modifier = Modifier.weight(1f).fillMaxHeight(),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text("Masuk", fontSize = 12.sp, fontWeight = FontWeight.Medium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
+                }
             }
 
             Spacer(modifier = Modifier.height(20.dp))

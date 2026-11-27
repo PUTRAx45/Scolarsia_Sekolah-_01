@@ -15,30 +15,32 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.kawansekolah.ui.theme.PrimaryBlue
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AdminImporCsvScreen(
-    onBackClick: () -> Unit = {},
-    onValidateSuccess: () -> Unit = {}
+    onBackClick: () -> Unit = {}
 ) {
-    var selectedFileName by remember { mutableStateOf("akun_sekolah.csv") }
-    var isValidated by remember { mutableStateOf(false) }
-
     Column(
         modifier = Modifier
             .fillMaxSize()
             .background(MaterialTheme.colorScheme.background)
             .statusBarsPadding()
             .navigationBarsPadding()
+            .imePadding()
     ) {
         TopAppBar(
-            title = { Text("Impor akun", fontWeight = FontWeight.Bold) },
+            title = { Text("Impor Banyak Akun CSV", fontWeight = FontWeight.Bold) },
             navigationIcon = {
                 IconButton(onClick = onBackClick) {
                     Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Kembali")
                 }
-            }
+            },
+            colors = TopAppBarDefaults.topAppBarColors(
+                containerColor = MaterialTheme.colorScheme.background,
+                scrolledContainerColor = MaterialTheme.colorScheme.background
+            )
         )
 
         Column(
@@ -48,111 +50,47 @@ fun AdminImporCsvScreen(
                 .padding(20.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(16.dp),
-                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
-            ) {
-                Column(modifier = Modifier.padding(16.dp)) {
-                    Text(selectedFileName, fontWeight = FontWeight.Bold, fontSize = 14.sp)
-                    Text("Pilih file CSV • UTF-8", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Text(
+                text = "Pilih File CSV",
+                fontWeight = FontWeight.Bold,
+                fontSize = 16.sp
+            )
+            
+            Text(
+                text = "Unggah file CSV dengan data akun (nama, email, password, peran, dst). Template dapat diunduh di dashboard web.",
+                fontSize = 13.sp,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
 
-                    Spacer(modifier = Modifier.height(12.dp))
-
-                    OutlinedButton(
-                        onClick = { /* Pick CSV */ },
-                        modifier = Modifier.fillMaxWidth().height(42.dp),
-                        shape = RoundedCornerShape(10.dp)
-                    ) {
-                        Text("Pilih file", fontWeight = FontWeight.Bold)
-                    }
-                }
-            }
-
-            Text("Template kolom wajib", fontWeight = FontWeight.Bold, fontSize = 13.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Spacer(modifier = Modifier.height(8.dp))
 
             Surface(
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(100.dp),
                 shape = RoundedCornerShape(12.dp),
-                color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)
+                color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+                onClick = { /* TODO Open File Picker */ }
             ) {
-                Text(
-                    text = "nama • peran • email • nis_anak",
-                    fontSize = 13.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.padding(14.dp)
-                )
-            }
-
-            Text("Ringkasan file", fontWeight = FontWeight.Bold, fontSize = 13.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
-
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(16.dp),
-                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
-            ) {
-                Row(
-                    modifier = Modifier.fillMaxWidth().padding(16.dp),
-                    horizontalArrangement = Arrangement.SpaceEvenly
-                ) {
-                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        Text("GURU", fontSize = 10.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                        Text("26", fontSize = 18.sp, fontWeight = FontWeight.Bold)
-                    }
-                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        Text("SISWA", fontSize = 10.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                        Text("384", fontSize = 18.sp, fontWeight = FontWeight.Bold)
-                    }
-                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        Text("ORTU", fontSize = 10.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                        Text("310", fontSize = 18.sp, fontWeight = FontWeight.Bold)
-                    }
+                Box(contentAlignment = androidx.compose.ui.Alignment.Center) {
+                    Text(
+                        text = "Ketuk untuk memilih file .csv",
+                        color = PrimaryBlue,
+                        fontWeight = FontWeight.Medium
+                    )
                 }
-            }
-
-            Surface(
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(12.dp),
-                color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)
-            ) {
-                Text(
-                    text = "Kolom nis_anak diisi untuk akun orang tua. Pisahkan beberapa NIS dengan titik koma, contoh 09231;09240.",
-                    fontSize = 11.sp,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.padding(14.dp)
-                )
             }
 
             Spacer(modifier = Modifier.weight(1f))
 
-            if (isValidated) {
-                Surface(
-                    shape = RoundedCornerShape(12.dp),
-                    color = Color(0xFFDCFCE7),
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Text(
-                        text = "✅ File berhasil divalidasi & 720 akun terimpor!",
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 12.sp,
-                        color = Color(0xFF166534),
-                        modifier = Modifier.padding(12.dp)
-                    )
-                }
-                Spacer(modifier = Modifier.height(10.dp))
-            }
-
             Button(
-                onClick = {
-                    isValidated = true
-                    onValidateSuccess()
-                },
+                onClick = { /* TODO Process CSV */ },
+                enabled = false, // Disabled by default until file is picked
                 modifier = Modifier.fillMaxWidth().height(50.dp),
                 shape = RoundedCornerShape(12.dp),
-                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF2563EB))
+                colors = ButtonDefaults.buttonColors(containerColor = PrimaryBlue)
             ) {
-                Text("Validasi & daftarkan", fontWeight = FontWeight.Bold, fontSize = 15.sp, color = Color.White)
+                Text("Validasi & Impor Akun", fontWeight = FontWeight.Bold, fontSize = 15.sp, color = Color.White)
             }
         }
     }

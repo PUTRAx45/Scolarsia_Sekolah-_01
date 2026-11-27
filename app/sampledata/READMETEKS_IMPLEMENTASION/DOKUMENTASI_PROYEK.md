@@ -20,27 +20,31 @@ Dokumentasi dan panduan teknis proyek Scolarsia.
 - **Auth Emulator:** Port 9099
 - **Firestore Emulator:** Port 8081
 - **Firebase UI:** Port 4000
-- **Data Persistence:** `./emulator-data` (saved automatically on `docker compose down`)
+- **Data Persistence:** Data tersimpan secara permanen di dalam folder `./emulator-data` saat perintah `docker compose down` dijalankan. Apabila suatu saat data Anda hilang (atau container terhapus), Anda dapat membuat ulang 6 akun demo dengan menjalankan `npm run seed:reset` di folder `backend/`.
 
 ---
 
-## 🔑 Test Credentials
-**Password for guru accounts:** `1g2u3r4u`
-**Password for admin accounts:** `1a2d3m4i5n`
-**Password for Wali kelas accounts:** `1w2a3l4i`
-**Password for siswa accounts:** `1s2i3w4a`
-**Password for Orang tua accounts:** `1o2r3a4n5g`
+## 🔒 Aturan Akses Mode Demo
+Saat ini aplikasi terkunci dalam **Mode Demo** (diaktifkan melalui flag `DEMO_MODE = true` pada file `BuildConfig` Android). 
+Sistem login dikunci ketat dengan aturan berikut:
+- **Hak Akses Terpisah:** Admin bisa mengakses fitur Guru/Wali, dan Guru/Wali bisa saling mengakses fitur. Namun, Siswa dan Orang Tua terisolasi total pada fiturnya masing-masing.
+- Siswa hanya dapat melihat nilainya sendiri, dan Orang Tua hanya dapat melihat data anaknya sendiri tanpa bisa membuka halaman siswa.
+- **Batasan Login:** Fitur lupa password, registrasi mandiri, dan login pihak ketiga (Google) dinonaktifkan sepenuhnya. Pengguna hanya dapat login menggunakan satu dari 6 akun yang tercantum di bawah ini.
 
+---
 
-| Role | Email |
-|---|---|
-| Admin | admin12@scolarsia.ac.id |
-| Guru | guru12@scolarsia.ac.id |
-| Wali Kelas | walikelas12@scolarsia.ac.id |
-| Siswa | siswa01@scolarsia.ac.id |
-| Orang Tua | ortu_siswa01@scolarsia.ac.id |
+## 🔑 Test Credentials (Demo Mode)
 
-*(Terdapat total 6 siswa dan 6 orang tua dengan pola email yang sama).*
+| Role | Email | Password | Roles (Hak Akses) |
+|---|---|---|---|
+| Admin | admin12@scolarsia.ac.id | 1a2d3m4i5n | ADMIN, GURU, WALI_KELAS |
+| Guru | guru12@scolarsia.ac.id | 1g2u3r4u | GURU, WALI_KELAS |
+| Wali Kelas | walikelas12@scolarsia.ac.id | 1w2a3l4i | WALI_KELAS, GURU |
+| Siswa | siswa01@scolarsia.ac.id | 1s2i3w4a | SISWA |
+| Orang Tua | ortu_siswa01@scolarsia.ac.id | 1o2r3a4n5g | ORANG_TUA |
+| Akun Semua Role | demo.semua@scolarsia.ac.id | 1s2e3m4u5a | ADMIN, GURU, WALI_KELAS, SISWA, ORANG_TUA |
+
+> **Catatan Penting:** Mode demo hanya mengizinkan 6 akun tunggal di atas untuk login. Peran Siswa dan Orang Tua terpisah total tanpa akses silang. Login dengan email di luar tabel ini akan ditolak otomatis.
 
 ---
 
@@ -50,7 +54,7 @@ Jalankan perintah ini di dalam folder `backend/`:
 
 ```bash
 # Start backend server (Port 3000)
-npm start
+npm  
 
 # Run system health and emulator checks
 npm run cek
