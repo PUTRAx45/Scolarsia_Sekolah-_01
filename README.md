@@ -1,18 +1,18 @@
 # Scolarsia - Aplikasi Analytics & Penilaian Sekolah
 
-**Scolarsia** (`com.example.kawansekolah`) adalah aplikasi manajemen dan analitik nilai siswa berbasis Android (**Kotlin & Jetpack Compose**) yang mengintegrasikan **AI Analytics** untuk evaluasi nilai sub-topik berbobot, deteksi mata pelajaran lemah, serta rekomendasi belajar cerdas bagi siswa.
+**Scolarsia** (`com.example.kawansekolah`) adalah aplikasi manajemen dan analitik nilai siswa berbasis Android (**Kotlin & Jetpack Compose**) yang terhubung dengan layanan **AI Analytics** untuk mengevaluasi nilai sub-topik berbobot, mendeteksi mata pelajaran yang lemah, dan menghasilkan rekomendasi belajar siswa secara otomatis.
 
 ---
 
 ## 🌟 Fitur Utama
 
 - **Multi-Role Access Control (Akses Berbasis Peran Strict):**
-  - **Admin / Super Admin:** Pengelolaan pengguna, jenjang & kelas, mata pelajaran, penugasan guru, dan mode *"Lihat sebagai"* (View As).
+  - **Admin / Super Admin:** Pengelolaan pengguna, jenjang & kelas, mata pelajaran, penugasan guru, dan mode *"Lihat sebagai"* (*Super Admin*).
   - **Guru Mata Pelajaran:** Penginputan nilai sub-materi berbobot, unggah nilai via CSV, dan dasbor pemantauan performa mengajar.
   - **Wali Kelas:** Rekapitulasi nilai kelas bimbingan, analisis statistik perkembangan siswa, dan rapor digital.
   - **Siswa:** Pemantauan nilai akhir berbobot, analisis sub-materi terlemah, modul pelajaran, dan AI Tutor interaktif.
   - **Orang Tua:** Pemantauan nilai anak yang terhubung, laporan perkembangan akademik, dan komunikasi notifikasi sekolah.
-- **AI Grade Analytics & Tutor:** Integrasi AI berbasis OpenRouter API (Gemini / GPT) untuk menghitung analisis kekuatan/kelemahan sub-materi secara otomatis serta menyediakan rekomendasi belajar terpersonalisasi.
+- **AI Grade Analytics & Rekomendasi Belajar:** Integrasi cerdas dengan engine LLM untuk menganalisis nilai sub-topik berbobot, mengidentifikasi materi lemah, serta memberikan saran belajar khusus per siswa.
 - **Manajemen Kelas & Penilaian Multi-Jenjang:** Mendukung jenjang SD (kelas 1–6), SMP (kelas 7–9), dan SMA (kelas 10–12) dengan bobot tugas, UTS, dan UAS yang fleksibel.
 - **Impor Data Agregat CSV:** Kemudahan penginputan nilai dan pendaftaran akun siswa/guru dalam jumlah besar via berkas `.csv`.
 - **Manajemen Perangkat & Sesi:** Pelacakan perangkat dan sesi aktif serta penguncian navigasi per akun yang ketat untuk keamanan data sekolah.
@@ -21,12 +21,14 @@
 
 ## 🛠️ Tech Stack & Arsitektur Layanan
 
-Aplikasi ini menggunakan arsitektur *hybrid* yang menghubungkan aplikasi Android, Backend REST API Node.js, database relasional PostgreSQL, dan Firebase Emulator Suite.
+Aplikasi ini menggunakan arsitektur *hybrid* yang menghubungkan aplikasi Android, Backend REST API Node.js, Engine AI (Ollama Local / OpenRouter Cloud), database relasional PostgreSQL, dan Firebase Emulator Suite.
 
 | Komponen | Teknologi / Framework | Port Default | Deskripsi Fungsi |
 | :--- | :--- | :--- | :--- |
-| **Mobile App** | Kotlin, Jetpack Compose, Material 3, Navigation Compose, Coroutines | - | Aplikasi Android native (`com.example.kawansekolah`) |
+| **Mobile App** | Kotlin, Jetpack Compose, Material 3, Navigation Compose, Retrofit2 | - | Aplikasi Android native (`com.example.kawansekolah`) |
 | **Backend API** | Node.js, Express.js, Firebase Admin SDK, Axios | `3000` | Service REST API untuk pengolahan AI Analytics dan admin endpoints |
+| **AI Engine (Primary)** | Ollama Local LLM (`llama3.2:latest`) | `11434` | Engine AI lokal utama (`http://127.0.0.1:11434/v1/chat/completions`) |
+| **AI Engine (Fallback)** | OpenRouter Cloud API (`openai/gpt-4o-mini`) | `443` (HTTPS) | Backup Cloud AI API via `OPENROUTER_API_KEY` di `backend/.env` |
 | **Relational Database** | PostgreSQL 17 (Docker Container) | `5434` / `5432` | Penyimpanan data relasional backend (`users`, `sekolah`, `kelas`, `mapel`, `nilai`, dsb.) |
 | **Auth Emulator** | Firebase Auth Emulator | `9099` | Layanan autentikasi identitas akun lokal |
 | **Firestore Emulator** | Cloud Firestore Emulator | `8081` | Database dokumen NoSQL lokal untuk profil dan histori akademik |
@@ -43,7 +45,10 @@ Sebelum menjalankan aplikasi, pastikan perangkat pengembangan Anda telah terpasa
 3. **Node.js** (Versi 18+ LTS) & `npm`
 4. **Docker Desktop** (dengan WSL2 / Hyper-V aktif pada Windows)
 5. **Firebase CLI** (`npm install -g firebase-tools`)
-6. **Perangkat Penguji:** Android Emulator (API 26+) atau HP Fisik Android (versi 8.0+) yang terhubung ke jaringan Wi-Fi lokal yang sama.
+6. **Runtime / Koneksi AI Engine:**
+   - **Pilihan 1 (Lokal - Default):** Terpasang **Ollama** di komputer (`ollama run llama3.2`) berjalan di Port `11434`.
+   - **Pilihan 2 (Cloud Fallback):** Memiliki **OpenRouter API Key** (`OPENROUTER_API_KEY` di berkas `backend/.env`).
+7. **Perangkat Penguji:** Android Emulator (API 26+) atau HP Fisik Android (versi 8.0+) yang terhubung ke jaringan Wi-Fi lokal yang sama.
 
 ---
 
@@ -81,10 +86,14 @@ scolarsia.autostart=false
    - Buka **Docker Desktop** -> **Settings (⚙️)** -> **General**.
    - Centang opsi **Start Docker Desktop when you sign in** agar *engine* Docker selalu siap di latar belakang.
 
-4. **Mengetahui IP Wi-Fi Laptop (`tampil-ip.bat`):**
-   - Jalankan `tampil-ip.bat` di terminal atau klik ganda berkas tersebut untuk menampilkan alamat IPv4 Wi-Fi laptop Anda (misal: `192.168.1.5`).
+4. **Penyiapan Layanan AI Engine:**
+   - **Lokal (Ollama):** Unduh model dengan menjalankan perintah `ollama pull llama3.2` pada terminal Anda. Pastikan Ollama aktif di port `11434`.
+   - **Cloud (OpenRouter):** Salin `backend/.env.example` menjadi `backend/.env`, lalu isikan `OPENROUTER_API_KEY=sk-or-v1-...` jika ingin menggunakan provider cloud.
 
-5. **Konfigurasi Alamat Server pada Aplikasi:**
+5. **Mengetahui IP Wi-Fi Laptop (`tampil-ip.bat`):**
+   - Jalankan `tampil-ip.bat` di terminal untuk menampilkan alamat IPv4 Wi-Fi laptop Anda (misal: `192.168.1.5`).
+
+6. **Konfigurasi Alamat Server pada Aplikasi:**
    - **Android Emulator:** Menggunakan IP khusus `10.0.2.2` secara otomatis.
    - **HP Fisik:** Buka dialog *Konfigurasi Alamat Server* (ikon roda gigi ⚙️ di pojok kanan atas layar Login) dan masukkan IP Wi-Fi laptop Anda.
 
@@ -107,15 +116,18 @@ scolarsia.autostart=false
 Jika Anda ingin menjalankan layanan secara terpisah:
 
 ```powershell
-# 1. Menyalakan Container Docker (PostgreSQL & Firebase Emulator)
+# 1. Menyalakan Ollama AI Engine (jika menggunakan AI lokal)
+ollama serve
+
+# 2. Menyalakan Container Docker (PostgreSQL & Firebase Emulator)
 cd C:\firebase-docker
 docker compose up -d
 
-# 2. Seeding Data PostgreSQL (Port 5434)
+# 3. Seeding Data PostgreSQL (Port 5434)
 cd C:\Users\danip\Downloads\KawanSekolah1-master
 docker exec -i firebase-docker-postgres-1 psql -U admin -d postgres < seed_postgres.sql
 
-# 3. Seeding Data Firebase Emulator (Auth & Firestore)
+# 4. Seeding Data Firebase Emulator (Auth & Firestore)
 cd seed-firebase
 cmd.exe /c "npm install"
 $env:FIREBASE_AUTH_EMULATOR_HOST="127.0.0.1:9099"
@@ -123,7 +135,7 @@ $env:FIRESTORE_EMULATOR_HOST="127.0.0.1:8081"
 $env:GCLOUD_PROJECT="demo-kawansekolah"
 node seed.js
 
-# 4. Menyalakan Backend API Node.js (Port 3000)
+# 5. Menyalakan Backend API Node.js (Port 3000)
 cd ..\backend
 cmd.exe /c "npm install"
 npm start
@@ -174,8 +186,13 @@ Scolarsia_Sekolah-_01/
 │       │   └── res/                      # Drawable, Mipmap, Values, & Layouts
 │       └── test/                         # Unit Tests (RouteGuard & Logic Tests)
 ├── backend/                              # Service REST API Node.js / Express
-│   ├── server.js                         # Server Utama & Middleware
+│   ├── server.js                         # Server Utama, AI Router (Ollama/OpenRouter)
+│   ├── greeting.js                       # Detektor Salam & Penangan Kasus Sederhana
+│   ├── moderation.js                     # Filter Moderasi Konten & Bad Words
+│   ├── badwords.json                     # Kamus Kata Terlarang Moderasi
 │   ├── seed-manager.js                   # Manager Seeding Backend
+│   ├── Dockerfile                        # Konfigurasi Container Backend
+│   ├── .env.example                      # Template Variabel Lingkungan
 │   └── package.json                      # Dependencies Backend Node.js
 ├── seed-firebase/                        # Tools Seeding Firebase Emulator
 │   ├── seed.js                           # Script Seeding Auth & Firestore
