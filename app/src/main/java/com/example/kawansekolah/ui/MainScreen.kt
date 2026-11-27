@@ -230,7 +230,6 @@ fun MainScreen(
             startDestination = startDest,
             modifier = Modifier.padding(bottom = innerPadding.calculateBottomPadding())
         ) {
-            // GURU ROUTES
             if (RouteGuard.isRouteAllowedForAccount(loginRole, userRole, allowedRoles, isSuperAdmin, "guru_input")) {
                 composable("guru_input") {
                     InputNilaiScreen(
@@ -262,7 +261,6 @@ fun MainScreen(
                 }
             }
 
-            // WALI KELAS ROUTES
             if (RouteGuard.isRouteAllowedForAccount(loginRole, userRole, allowedRoles, isSuperAdmin, "rekap_wali")) {
                 composable("rekap_wali") {
                     RekapNilaiScreen(
@@ -282,7 +280,6 @@ fun MainScreen(
                 }
             }
 
-            // SHARED BETWEEN GURU & WALI KELAS
             if (RouteGuard.isRouteAllowedForAccount(loginRole, userRole, allowedRoles, isSuperAdmin, "insight_page")) {
                 composable("insight_page") {
                     InsightScreen(
@@ -292,7 +289,6 @@ fun MainScreen(
                 }
             }
 
-            // GENERAL USER ROUTES
             if (RouteGuard.isRouteAllowedForAccount(loginRole, userRole, allowedRoles, isSuperAdmin, "beranda")) {
                 composable("beranda") {
                     BerandaScreen(
@@ -351,7 +347,6 @@ fun MainScreen(
                 }
             }
 
-            // PROFILE & ACCOUNT SETTINGS (ALL ROLES)
             composable("profil") {
                 val canSwitchBetweenGuruAndWali = allowedRoles.contains(UserRole.GURU) && allowedRoles.contains(UserRole.WALI_KELAS)
                 ProfilScreen(
@@ -390,7 +385,6 @@ fun MainScreen(
                 com.example.kawansekolah.ui.profil.PerangkatSesiScreen(onBackClick = { navController.popBackStack() })
             }
 
-            // ADMIN ROUTES
             if (RouteGuard.isRouteAllowedForAccount(loginRole, userRole, allowedRoles, isSuperAdmin, "admin_beranda")) {
                 composable("admin_beranda") {
                     com.example.kawansekolah.ui.admin.AdminBerandaScreen(
