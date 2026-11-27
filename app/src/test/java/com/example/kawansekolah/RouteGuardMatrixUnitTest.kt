@@ -106,8 +106,23 @@ class RouteGuardMatrixUnitTest {
         AuthRepository.setCachedUser(user)
         assertEquals(user, AuthRepository.getCachedUser("guru_01"))
 
-        // Simulate Logout: Clear memori cache dan user active UID
         AuthRepository.clearCache()
         assertNull(AuthRepository.getCachedUser("guru_01"))
+    }
+
+    @Test
+    fun `7 Account Level Locking Test - guru12`() {
+        val loginRole = UserRole.GURU
+        val allowedRoles = listOf(UserRole.GURU, UserRole.WALI_KELAS)
+        val isSuperAdmin = false
+
+        assertTrue(RouteGuard.isRouteAllowedForAccount(loginRole, UserRole.GURU, allowedRoles, isSuperAdmin, "guru_input"))
+        assertTrue(RouteGuard.isRouteAllowedForAccount(loginRole, UserRole.WALI_KELAS, allowedRoles, isSuperAdmin, "rekap_wali"))
+
+        assertFalse(RouteGuard.isRouteAllowedForAccount(loginRole, UserRole.GURU, allowedRoles, isSuperAdmin, "admin_beranda"))
+        assertFalse(RouteGuard.isRouteAllowedForAccount(loginRole, UserRole.GURU, allowedRoles, isSuperAdmin, "ai"))
+        assertFalse(RouteGuard.isRouteAllowedForAccount(loginRole, UserRole.GURU, allowedRoles, isSuperAdmin, "pelajaran"))
+
+        assertFalse(RouteGuard.isRouteAllowedForAccount(loginRole, UserRole.SISWA, allowedRoles, isSuperAdmin, "beranda"))
     }
 }

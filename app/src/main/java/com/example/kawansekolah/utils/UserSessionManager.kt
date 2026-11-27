@@ -18,6 +18,7 @@ class UserSessionManager(context: Context) {
         private const val KEY_VIEW_AS_ROLE = "view_as_role"
         private const val KEY_USER_CLASS = "user_class"
         private const val KEY_IS_SUPER_ADMIN = "is_super_admin"
+        private const val KEY_ALLOWED_ROLES = "allowed_roles"
     }
 
     fun saveSession(userName: String, role: UserRole, className: String = "", isSuperAdmin: Boolean = false) {
@@ -28,7 +29,7 @@ class UserSessionManager(context: Context) {
             putString(KEY_VIEW_AS_ROLE, role.name)
             putString(KEY_USER_CLASS, className)
             putBoolean(KEY_IS_SUPER_ADMIN, isSuperAdmin)
-            commit() // Synchronous save
+            commit()
         }
     }
 
@@ -52,7 +53,7 @@ class UserSessionManager(context: Context) {
             UserRole.SISWA
         }
     }
-    
+
     fun getLoginRole(): UserRole {
         val roleName = prefs.getString(KEY_LOGIN_ROLE, UserRole.SISWA.name)
         return try {
@@ -63,12 +64,18 @@ class UserSessionManager(context: Context) {
     }
 
     fun setViewAsRole(role: UserRole) {
-        prefs.edit().apply {
-            putString(KEY_VIEW_AS_ROLE, role.name)
-            commit()
+        val loginRole = getLoginRole()
+        val allowed = getAllowedRoles()
+        val isSuper = isSuperAdmin()
+
+        if ((isSuper && loginRole == UserRole.ADMIN) || allowed.contains(role)) {
+            prefs.edit().apply {
+                putString(KEY_VIEW_AS_ROLE, role.name)
+                commit()
+            }
         }
     }
-    
+
     fun clearViewAsRole() {
         prefs.edit().apply {
             val loginRole = prefs.getString(KEY_LOGIN_ROLE, UserRole.SISWA.name)
@@ -83,22 +90,23 @@ class UserSessionManager(context: Context) {
 
     fun saveAllowedRoles(roles: List<UserRole>) {
         prefs.edit().apply {
-            putStringSet("allowed_roles", roles.map { it.name }.toSet())
+            putStringSet(KEY_ALLOWED_ROLES, roles.map { it.name }.toSet())
             commit()
         }
     }
 
     fun getAllowedRoles(): List<UserRole> {
-        val set = prefs.getStringSet("allowed_roles", emptySet()) ?: emptySet()
-        return set.mapNotNull { 
-            try { UserRole.valueOf(it) } catch(e:Exception) { null } 
+        val set = prefs.getStringSet(KEY_ALLOWED_ROLES, emptySet()) ?: emptySet()
+        val result = set.mapNotNull {
+            try { UserRole.valueOf(it) } catch (e: Exception) { null }
         }
+        return if (result.isNotEmpty()) result else listOf(getLoginRole())
     }
 
     fun clearSession() {
         prefs.edit().apply {
             clear()
-            commit() // Synchronous clear
+            commit()
         }
     }
 }

@@ -54,7 +54,10 @@ fun MainScreen(
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = navBackStackEntry?.destination?.route
 
-    // BackHandler di Beranda agar menekan Back tidak kembali ke Login / Role Selection
+    val loginRole = sessionManager.getLoginRole()
+    val allowedRoles = sessionManager.getAllowedRoles()
+    val isSuperAdmin = sessionManager.isSuperAdmin()
+
     val isBerandaRoute = currentRoute == "beranda" || currentRoute == "admin_beranda"
     BackHandler(enabled = isBerandaRoute) {
         if (sessionManager.getLoginRole() == UserRole.ADMIN && userRole != UserRole.ADMIN) {
@@ -67,13 +70,18 @@ fun MainScreen(
         }
     }
 
-    // Guard Navigasi Antar Peran menggunakan RouteGuard utama
     LaunchedEffect(currentRoute, userRole) {
         if (currentRoute != null) {
-            val isAllowed = RouteGuard.isRouteAllowedForRole(userRole, currentRoute) || sessionManager.getLoginRole() == UserRole.ADMIN
+            val isAllowed = RouteGuard.isRouteAllowedForAccount(
+                loginRole = loginRole,
+                activeViewRole = userRole,
+                allowedRoles = allowedRoles,
+                isSuperAdmin = isSuperAdmin,
+                route = currentRoute
+            )
             if (!isAllowed) {
                 val homeRoute = RouteGuard.getHomeRouteForRole(userRole)
-                Log.w("ScolarsiaAuth", "Navigasi Ditolak: User ${userRole.name} dilarang mengakses route '$currentRoute'. Mengarahkan kembali ke $homeRoute.")
+                Log.w("ScolarsiaAuth", "Navigasi Ditolak: User $loginRole (ViewRole: ${userRole.name}) dilarang mengakses route '$currentRoute'. Mengarahkan kembali ke $homeRoute.")
                 navController.navigate(homeRoute) {
                     popUpTo(0) { inclusive = true }
                 }
@@ -82,7 +90,7 @@ fun MainScreen(
     }
 
     LaunchedEffect(initialNavigateTo) {
-        if (!initialNavigateTo.isNullOrBlank() && RouteGuard.isRouteAllowedForRole(userRole, initialNavigateTo)) {
+        if (!initialNavigateTo.isNullOrBlank() && RouteGuard.isRouteAllowedForAccount(loginRole, userRole, allowedRoles, isSuperAdmin, initialNavigateTo)) {
             navController.navigate(initialNavigateTo) {
                 popUpTo(RouteGuard.getHomeRouteForRole(userRole)) { saveState = true }
                 launchSingleTop = true
@@ -92,7 +100,6 @@ fun MainScreen(
         }
     }
 
-    // Repository State
     val initialSubjects = remember { SchoolRepository.getInitialSubjects() }
     val initialTasks = remember { SchoolRepository.getInitialTasks() }
     val initialGrades = remember { SchoolRepository.getInitialGrades() }
@@ -102,7 +109,6 @@ fun MainScreen(
     var grades by remember { mutableStateOf(initialGrades) }
     var selectedSubjectForDetail by remember { mutableStateOf<Subject?>(null) }
 
-    // Real-time ticker state
     var nowMillis by remember { mutableLongStateOf(System.currentTimeMillis()) }
 
     LaunchedEffect(Unit) {
@@ -112,7 +118,6 @@ fun MainScreen(
         }
     }
 
-    // Notifications State
     val startMillis = remember { System.currentTimeMillis() }
     var notifications by remember(userRole) {
         mutableStateOf(
@@ -226,7 +231,7 @@ fun MainScreen(
             modifier = Modifier.padding(bottom = innerPadding.calculateBottomPadding())
         ) {
             // GURU ROUTES
-            if (RouteGuard.isRouteAllowedForRole(userRole, "guru_input")) {
+            if (RouteGuard.isRouteAllowedForAccount(loginRole, userRole, allowedRoles, isSuperAdmin, "guru_input")) {
                 composable("guru_input") {
                     InputNilaiScreen(
                         userRole = roleString,
@@ -236,7 +241,7 @@ fun MainScreen(
                     )
                 }
             }
-            if (RouteGuard.isRouteAllowedForRole(userRole, "unggah_csv")) {
+            if (RouteGuard.isRouteAllowedForAccount(loginRole, userRole, allowedRoles, isSuperAdmin, "unggah_csv")) {
                 composable("unggah_csv") {
                     UnggahCsvScreen(
                         userRole = roleString,
@@ -245,7 +250,7 @@ fun MainScreen(
                     )
                 }
             }
-            if (RouteGuard.isRouteAllowedForRole(userRole, "guru_dashboard")) {
+            if (RouteGuard.isRouteAllowedForAccount(loginRole, userRole, allowedRoles, isSuperAdmin, "guru_dashboard")) {
                 composable("guru_dashboard") {
                     GuruScreen(
                         userName = userName,
@@ -258,7 +263,7 @@ fun MainScreen(
             }
 
             // WALI KELAS ROUTES
-            if (RouteGuard.isRouteAllowedForRole(userRole, "rekap_wali")) {
+            if (RouteGuard.isRouteAllowedForAccount(loginRole, userRole, allowedRoles, isSuperAdmin, "rekap_wali")) {
                 composable("rekap_wali") {
                     RekapNilaiScreen(
                         userRole = roleString,
@@ -268,7 +273,7 @@ fun MainScreen(
                     )
                 }
             }
-            if (RouteGuard.isRouteAllowedForRole(userRole, "statistik")) {
+            if (RouteGuard.isRouteAllowedForAccount(loginRole, userRole, allowedRoles, isSuperAdmin, "statistik")) {
                 composable("statistik") {
                     StatistikScreen(
                         userRole = roleString,
@@ -278,7 +283,7 @@ fun MainScreen(
             }
 
             // SHARED BETWEEN GURU & WALI KELAS
-            if (RouteGuard.isRouteAllowedForRole(userRole, "insight_page")) {
+            if (RouteGuard.isRouteAllowedForAccount(loginRole, userRole, allowedRoles, isSuperAdmin, "insight_page")) {
                 composable("insight_page") {
                     InsightScreen(
                         userRole = roleString,
@@ -288,7 +293,7 @@ fun MainScreen(
             }
 
             // GENERAL USER ROUTES
-            if (RouteGuard.isRouteAllowedForRole(userRole, "beranda")) {
+            if (RouteGuard.isRouteAllowedForAccount(loginRole, userRole, allowedRoles, isSuperAdmin, "beranda")) {
                 composable("beranda") {
                     BerandaScreen(
                         navController = navController,
@@ -309,7 +314,7 @@ fun MainScreen(
                     )
                 }
             }
-            if (RouteGuard.isRouteAllowedForRole(userRole, "pelajaran")) {
+            if (RouteGuard.isRouteAllowedForAccount(loginRole, userRole, allowedRoles, isSuperAdmin, "pelajaran")) {
                 composable("pelajaran") {
                     PelajaranScreen(
                         userName = userName,
@@ -320,7 +325,7 @@ fun MainScreen(
                     )
                 }
             }
-            if (RouteGuard.isRouteAllowedForRole(userRole, "ai")) {
+            if (RouteGuard.isRouteAllowedForAccount(loginRole, userRole, allowedRoles, isSuperAdmin, "ai")) {
                 composable("ai") {
                     AiScreen(
                         userName = userName,
@@ -334,7 +339,7 @@ fun MainScreen(
                     )
                 }
             }
-            if (RouteGuard.isRouteAllowedForRole(userRole, "nilai")) {
+            if (RouteGuard.isRouteAllowedForAccount(loginRole, userRole, allowedRoles, isSuperAdmin, "nilai")) {
                 composable("nilai") {
                     NilaiScreen(
                         userName = userName,
@@ -348,12 +353,19 @@ fun MainScreen(
 
             // PROFILE & ACCOUNT SETTINGS (ALL ROLES)
             composable("profil") {
+                val canSwitchBetweenGuruAndWali = allowedRoles.contains(UserRole.GURU) && allowedRoles.contains(UserRole.WALI_KELAS)
                 ProfilScreen(
                     userName = userName,
                     userRole = userRole.name,
                     userEmail = Firebase.auth.currentUser?.email ?: "user@scolarsia.sch.id",
                     isViewAsMode = sessionManager.getLoginRole() == UserRole.ADMIN && userRole != UserRole.ADMIN,
                     viewAsRoleName = userRole.label,
+                    showRoleSwitch = canSwitchBetweenGuruAndWali,
+                    onBeralihPeran = {
+                        val targetRole = if (userRole == UserRole.GURU) UserRole.WALI_KELAS else UserRole.GURU
+                        sessionManager.setViewAsRole(targetRole)
+                        navController.navigate("beranda") { popUpTo(0) { inclusive = true } }
+                    },
                     onBackToAdminClick = {
                         sessionManager.clearViewAsRole()
                         navController.navigate("admin_beranda") { popUpTo(0) { inclusive = true } }
@@ -379,7 +391,7 @@ fun MainScreen(
             }
 
             // ADMIN ROUTES
-            if (RouteGuard.isRouteAllowedForRole(userRole, "admin_beranda")) {
+            if (RouteGuard.isRouteAllowedForAccount(loginRole, userRole, allowedRoles, isSuperAdmin, "admin_beranda")) {
                 composable("admin_beranda") {
                     com.example.kawansekolah.ui.admin.AdminBerandaScreen(
                         userName = userName,
@@ -390,7 +402,7 @@ fun MainScreen(
                     )
                 }
             }
-            if (RouteGuard.isRouteAllowedForRole(userRole, "admin_pengguna")) {
+            if (RouteGuard.isRouteAllowedForAccount(loginRole, userRole, allowedRoles, isSuperAdmin, "admin_pengguna")) {
                 composable("admin_pengguna") {
                     com.example.kawansekolah.ui.admin.AdminPenggunaScreen(
                         onBackClick = { navController.popBackStack() },
@@ -399,7 +411,7 @@ fun MainScreen(
                     )
                 }
             }
-            if (RouteGuard.isRouteAllowedForRole(userRole, "admin_akademik")) {
+            if (RouteGuard.isRouteAllowedForAccount(loginRole, userRole, allowedRoles, isSuperAdmin, "admin_akademik")) {
                 composable("admin_akademik") {
                     com.example.kawansekolah.ui.admin.AdminPenggunaScreen(
                         onBackClick = { navController.popBackStack() },
@@ -408,21 +420,31 @@ fun MainScreen(
                     )
                 }
             }
-            if (RouteGuard.isRouteAllowedForRole(userRole, "admin_penugasan_guru")) {
+            if (RouteGuard.isRouteAllowedForAccount(loginRole, userRole, allowedRoles, isSuperAdmin, "admin_penugasan_guru")) {
                 composable("admin_penugasan_guru") {
                     com.example.kawansekolah.ui.admin.AdminPenugasanGuruScreen(
                         onBackClick = { navController.popBackStack() }
                     )
                 }
             }
-            if (RouteGuard.isRouteAllowedForRole(userRole, "admin_profil")) {
+            if (RouteGuard.isRouteAllowedForAccount(loginRole, userRole, allowedRoles, isSuperAdmin, "admin_profil")) {
                 composable("admin_profil") {
                     com.example.kawansekolah.ui.admin.AdminProfilScreen(
-                        onLogoutClick = onLogout
+                        adminName = userName,
+                        adminEmail = Firebase.auth.currentUser?.email ?: "admin12@scolarsia.ac.id",
+                        isSuperAdmin = isSuperAdmin,
+                        onLogoutClick = onLogout,
+                        onUbahKataSandiClick = { navController.navigate("ubah_kata_sandi") },
+                        onPrivasiNotifikasiClick = { navController.navigate("privasi_notifikasi") },
+                        onPerangkatSesiClick = { navController.navigate("perangkat_sesi") },
+                        onViewAsRole = { targetRole ->
+                            sessionManager.setViewAsRole(targetRole)
+                            navController.navigate("beranda") { popUpTo(0) { inclusive = true } }
+                        }
                     )
                 }
             }
-            if (RouteGuard.isRouteAllowedForRole(userRole, "admin_detail_akun")) {
+            if (RouteGuard.isRouteAllowedForAccount(loginRole, userRole, allowedRoles, isSuperAdmin, "admin_detail_akun")) {
                 composable("admin_detail_akun") {
                     com.example.kawansekolah.ui.admin.AdminDetailAkunScreen(
                         onBackClick = { navController.popBackStack() }
@@ -434,14 +456,14 @@ fun MainScreen(
                     )
                 }
             }
-            if (RouteGuard.isRouteAllowedForRole(userRole, "admin_daftar_akun")) {
+            if (RouteGuard.isRouteAllowedForAccount(loginRole, userRole, allowedRoles, isSuperAdmin, "admin_daftar_akun")) {
                 composable("admin_daftar_akun") {
                     com.example.kawansekolah.ui.admin.AdminDaftarAkunScreen(
                         onBackClick = { navController.popBackStack() }
                     )
                 }
             }
-            if (RouteGuard.isRouteAllowedForRole(userRole, "admin_impor_csv")) {
+            if (RouteGuard.isRouteAllowedForAccount(loginRole, userRole, allowedRoles, isSuperAdmin, "admin_impor_csv")) {
                 composable("admin_impor_csv") {
                     com.example.kawansekolah.ui.admin.AdminImporCsvScreen(
                         onBackClick = { navController.popBackStack() }

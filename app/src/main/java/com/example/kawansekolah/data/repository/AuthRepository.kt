@@ -6,10 +6,10 @@ import com.example.kawansekolah.BuildConfig
 import com.example.kawansekolah.FirebaseEmulatorHelper
 import com.example.kawansekolah.data.model.FirestoreCollections
 import com.example.kawansekolah.data.model.User
-import com.example.kawansekolah.demo.DemoAccounts
 import com.example.kawansekolah.data.model.UserRole
-import com.example.kawansekolah.utils.DeviceSessionManager
+import com.example.kawansekolah.demo.DemoAccounts
 import com.example.kawansekolah.utils.DevHost
+import com.example.kawansekolah.utils.DeviceSessionManager
 import com.google.firebase.Firebase
 import com.google.firebase.FirebaseApp
 import com.google.firebase.auth.FirebaseAuth
@@ -31,9 +31,6 @@ object AuthRepository {
     private val auth: FirebaseAuth get() = Firebase.auth
     private val firestore: FirebaseFirestore get() = Firebase.firestore
 
-
-
-    // In-Memory User Data Cache
     private val userMemoryCache = mutableMapOf<String, User>()
     private var activeUserUid: String? = null
 
@@ -55,14 +52,12 @@ object AuthRepository {
 
     suspend fun getUserProfile(uid: String): User? {
         userMemoryCache[uid]?.let {
-            if (BuildConfig.DEBUG) Log.d("LoginTiming", "[getUserProfile] Mengambil data user dari Cache Memori (0ms)")
             return it
         }
 
         return try {
             var userDoc: User? = null
 
-            // Try pengguna collection first
             val doc1 = firestore.collection(FirestoreCollections.PENGGUNA).document(uid).get().await()
             if (doc1.exists()) {
                 val parsed = doc1.toObject(User::class.java)
@@ -71,6 +66,19 @@ object AuthRepository {
                 val roleVal = doc1.getString("role") ?: parsed?.role ?: "SISWA"
                 val isAktif = doc1.getBoolean("aktif") ?: doc1.getBoolean("isActive") ?: parsed?.aktif ?: true
                 val isSuperAdmin = doc1.getBoolean("isSuperAdmin") ?: parsed?.isSuperAdmin ?: false
+                @Suppress("UNCHECKED_CAST")
+                val docRoles = doc1.get("roles") as? List<String> ?: emptyList()
+
+                val demoInfo = DemoAccounts.getDemoAccountInfo(emailVal)
+                val finalRoles = if (demoInfo != null) {
+                    demoInfo.allowedRoles.map { it.name }
+                } else if (docRoles.isNotEmpty()) {
+                    docRoles
+                } else {
+                    listOf(roleVal)
+                }
+
+                val finalSuperAdmin = demoInfo?.isSuperAdmin ?: isSuperAdmin
 
                 userDoc = User(
                     uid = uid,
@@ -78,11 +86,10 @@ object AuthRepository {
                     email = emailVal,
                     role = roleVal,
                     aktif = isAktif,
-                    roles = doc1.get("roles") as? List<String> ?: emptyList(),
-                    isSuperAdmin = isSuperAdmin
+                    roles = finalRoles,
+                    isSuperAdmin = finalSuperAdmin
                 )
             } else {
-                // Fallback to users collection
                 val doc2 = firestore.collection("users").document(uid).get().await()
                 if (doc2.exists()) {
                     val parsed = doc2.toObject(User::class.java)
@@ -91,6 +98,19 @@ object AuthRepository {
                     val roleVal = doc2.getString("role") ?: parsed?.role ?: "SISWA"
                     val isAktif = doc2.getBoolean("aktif") ?: doc2.getBoolean("isActive") ?: parsed?.aktif ?: true
                     val isSuperAdmin = doc2.getBoolean("isSuperAdmin") ?: parsed?.isSuperAdmin ?: false
+                    @Suppress("UNCHECKED_CAST")
+                    val docRoles = doc2.get("roles") as? List<String> ?: emptyList()
+
+                    val demoInfo = DemoAccounts.getDemoAccountInfo(emailVal)
+                    val finalRoles = if (demoInfo != null) {
+                        demoInfo.allowedRoles.map { it.name }
+                    } else if (docRoles.isNotEmpty()) {
+                        docRoles
+                    } else {
+                        listOf(roleVal)
+                    }
+
+                    val finalSuperAdmin = demoInfo?.isSuperAdmin ?: isSuperAdmin
 
                     userDoc = User(
                         uid = uid,
@@ -98,8 +118,8 @@ object AuthRepository {
                         email = emailVal,
                         role = roleVal,
                         aktif = isAktif,
-                        roles = doc2.get("roles") as? List<String> ?: emptyList(),
-                        isSuperAdmin = isSuperAdmin
+                        roles = finalRoles,
+                        isSuperAdmin = finalSuperAdmin
                     )
                 }
             }
@@ -152,7 +172,6 @@ object AuthRepository {
             Log.i("ScolarsiaAuth", "   useEmulator  : $isApplied")
             Log.i("ScolarsiaAuth", "======================================================")
 
-            // Block login immediately if emulator is NOT configured on Debug physical device
             if (BuildConfig.DEBUG && BuildConfig.USE_EMULATOR && !isApplied) {
                 if (DevHost.isPhysicalDevice() && currentHost.isBlank()) {
                     Log.w("ScolarsiaAuth", "Login DIBLOKIR: Alamat server belum diatur pada HP Fisik.")
@@ -160,7 +179,6 @@ object AuthRepository {
                 }
             }
 
-            // Quick TCP check (3 seconds) to Auth port 9099 before signInWithEmailAndPassword
             if (BuildConfig.DEBUG && BuildConfig.USE_EMULATOR) {
                 val targetHostCheck = currentHost.ifBlank { if (DevHost.isPhysicalDevice()) "" else "10.0.2.2" }
                 if (targetHostCheck.isNotBlank()) {
@@ -182,7 +200,6 @@ object AuthRepository {
                 }
             }
 
-            // 1. Firebase Auth signInWithEmailAndPassword
             val signInResult = try {
                 auth.signInWithEmailAndPassword(email, pass).await()
             } catch (e: FirebaseAuthException) {
@@ -223,12 +240,10 @@ object AuthRepository {
 
             val uid = signInResult.user?.uid ?: throw IllegalStateException("User ID tidak ditemukan pada Firebase Auth.")
 
-            // 2. Fetch profile from Firestore
             val userProfile = try {
                 getUserProfile(uid)
             } catch (e: FirebaseFirestoreException) {
                 auth.signOut()
-                val targetHost = DevHost.getHost(context).ifBlank { "10.0.2.2" }
                 if (e.code == FirebaseFirestoreException.Code.UNAVAILABLE) {
                     throw IllegalStateException("Server belum siap")
                 } else {
@@ -242,25 +257,25 @@ object AuthRepository {
                 throw IllegalStateException("Dokumen profil tidak ditemukan (UID: $uid). Akun belum didaftarkan oleh admin sekolah.")
             }
 
-            // 3. Verify Active Status
             if (!userProfile.aktif) {
                 auth.signOut()
                 Log.w("ScolarsiaAuth", "UID: $uid | Status akun nonaktif (aktif=false).")
                 throw IllegalStateException("Akun dinonaktifkan. Silakan hubungi administrator sekolah.")
             }
 
-            // 4. Verify Allowed Role
-            if (!userProfile.roles.contains(expectedRole.name)) {
+            val demoInfo = DemoAccounts.getDemoAccountInfo(email)
+            val allowedRolesList = demoInfo?.allowedRoles?.map { it.name } ?: userProfile.roles
+
+            if (!allowedRolesList.contains(expectedRole.name)) {
                 auth.signOut()
-                Log.w("ScolarsiaAuth", "Login DIBLOKIR: Akun tidak punya peran ${expectedRole.name}.")
+                Log.w("ScolarsiaAuth", "Login DIBLOKIR: Akun $email tidak punya peran ${expectedRole.name}.")
                 throw IllegalStateException("Akun ini tidak memiliki akses sebagai ${expectedRole.label}.")
             }
 
-            // 5. Track device session in Firestore if context is available
             context?.let { ctx ->
                 DeviceSessionManager.saveCurrentSession(ctx, uid)
             }
-            
+
             val actualRoleNorm = normalizeRole(userProfile.role)
             Log.i("ScolarsiaAuth", "UID: $uid | Role Firestore: $actualRoleNorm | Keputusan: SUCCESS")
             setCachedUser(userProfile)
@@ -302,7 +317,7 @@ object AuthRepository {
         val syntheticEmail = "${nis.trim()}@scolarsia.ac.id"
         return createAccountViaBackend(name, syntheticEmail, pass, "SISWA", context)
     }
-    
+
     private suspend fun createAccountViaBackend(
         name: String,
         email: String,
@@ -312,10 +327,9 @@ object AuthRepository {
     ): User {
         return withContext(Dispatchers.IO) {
             try {
-                // Ensure current user is an admin
                 val currentUser = auth.currentUser ?: throw IllegalStateException("Anda harus login sebagai admin untuk membuat akun.")
                 val token = currentUser.getIdToken(true).await().token ?: throw IllegalStateException("Gagal mendapatkan token autentikasi.")
-                
+
                 val baseUrl = DevHost.getBackendBaseUrl()
                 val url = java.net.URL(baseUrl + "admin/users")
                 val conn = url.openConnection() as java.net.HttpURLConnection
@@ -323,7 +337,7 @@ object AuthRepository {
                 conn.setRequestProperty("Content-Type", "application/json")
                 conn.setRequestProperty("Authorization", "Bearer $token")
                 conn.doOutput = true
-                
+
                 val jsonInputString = """
                     {
                         "name": "$name",
@@ -332,17 +346,16 @@ object AuthRepository {
                         "role": "$role"
                     }
                 """.trimIndent()
-                
+
                 conn.outputStream.use { os ->
                     val input = jsonInputString.toByteArray(Charsets.UTF_8)
                     os.write(input, 0, input.size)
                 }
-                
+
                 val responseCode = conn.responseCode
                 if (responseCode in 200..299) {
-                    // Success, parse if needed, but we can just construct a User object
                     User(
-                        uid = "new_uid", // Backend handles real UID. This is just for local immediate state if needed
+                        uid = "new_uid",
                         name = name,
                         email = email,
                         role = role,

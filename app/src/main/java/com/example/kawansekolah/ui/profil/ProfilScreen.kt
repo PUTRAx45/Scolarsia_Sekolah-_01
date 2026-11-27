@@ -5,7 +5,6 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -15,7 +14,6 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -33,6 +31,8 @@ fun ProfilScreen(
     userEmail: String = "user@scolarsia.sch.id",
     isViewAsMode: Boolean = false,
     viewAsRoleName: String = "",
+    showRoleSwitch: Boolean = false,
+    onBeralihPeran: () -> Unit = {},
     onBackToAdminClick: () -> Unit = {},
     onLogoutClick: () -> Unit = {},
     onUbahKataSandiClick: () -> Unit = {},
@@ -104,7 +104,6 @@ fun ProfilScreen(
                 .padding(horizontal = 16.dp, vertical = 12.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            // Profile Card Header
             Card(
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(20.dp),
@@ -145,7 +144,50 @@ fun ProfilScreen(
                 }
             }
 
-            // Academic Info Section Header
+            if (showRoleSwitch) {
+                Text(
+                    text = "Peralihan peran",
+                    style = MaterialTheme.typography.labelLarge,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(12.dp),
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                    border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.2f))
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable { onBeralihPeran() }
+                            .padding(16.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Icon(
+                                imageVector = if (userRole.equals("GURU", ignoreCase = true)) Icons.Default.SupervisedUserCircle else Icons.Default.CoPresent,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.size(24.dp)
+                            )
+                            Spacer(modifier = Modifier.width(16.dp))
+                            Text(
+                                text = if (userRole.equals("GURU", ignoreCase = true)) "Beralih ke Wali Kelas" else "Beralih ke Guru",
+                                style = MaterialTheme.typography.bodyLarge,
+                                fontWeight = FontWeight.Medium
+                            )
+                        }
+                        Icon(
+                            imageVector = Icons.Default.ChevronRight,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
+            }
+
             Text(
                 text = "Informasi akademik",
                 style = MaterialTheme.typography.labelLarge,
@@ -206,7 +248,6 @@ fun ProfilScreen(
                 }
             }
 
-            // Security & Privacy Section Header
             Text(
                 text = "Keamanan & privasi akun",
                 style = MaterialTheme.typography.labelLarge,
@@ -262,7 +303,6 @@ fun ProfilScreen(
 
             Spacer(modifier = Modifier.height(8.dp))
 
-            // Logout Button
             OutlinedButton(
                 onClick = { showLogoutDialog = true },
                 modifier = Modifier
@@ -286,12 +326,10 @@ fun ProfilScreen(
                 )
             }
 
-            // Extra Bottom Padding to prevent cutoff on large font scales
             Spacer(modifier = Modifier.height(32.dp))
         }
     }
 
-    // Logout Confirmation Dialog
     if (showLogoutDialog) {
         AlertDialog(
             onDismissRequest = { showLogoutDialog = false },

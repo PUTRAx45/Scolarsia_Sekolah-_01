@@ -28,6 +28,31 @@ object RouteGuard {
         }
     }
 
+    fun isRouteAllowedForAccount(
+        loginRole: UserRole,
+        activeViewRole: UserRole,
+        allowedRoles: List<UserRole>,
+        isSuperAdmin: Boolean,
+        route: String
+    ): Boolean {
+        if (sharedAccountRoutes.contains(route)) return true
+
+        val isAdminRoute = adminRoutes.contains(route)
+        if (isAdminRoute) {
+            return isSuperAdmin && loginRole == UserRole.ADMIN
+        }
+
+        if (isSuperAdmin && loginRole == UserRole.ADMIN) {
+            return isRouteAllowedForRole(activeViewRole, route)
+        }
+
+        if (!allowedRoles.contains(activeViewRole)) {
+            return false
+        }
+
+        return isRouteAllowedForRole(activeViewRole, route)
+    }
+
     fun getHomeRouteForRole(role: UserRole): String {
         return when (role) {
             UserRole.ADMIN -> "admin_beranda"

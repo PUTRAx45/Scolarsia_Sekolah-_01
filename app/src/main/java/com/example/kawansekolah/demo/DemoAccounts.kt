@@ -26,6 +26,11 @@ object DemoAccounts {
             allowedRoles = listOf(UserRole.ORANG_TUA)
         )
     )
+
+    fun getDemoAccountInfo(email: String): DemoAccountInfo? {
+        val key = email.trim().lowercase()
+        return ALLOWED_ACCOUNTS[key]
+    }
 }
 
 data class DemoAccountInfo(

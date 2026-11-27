@@ -11,7 +11,7 @@ Semua file Compose Screen di dalam _package_ `ui/admin` telah dirancang ulang ag
 Daftar file baru/diperbarui:
 - **`AdminMasukScreen.kt`**: UI untuk Halaman Login spesifik Admin.
 - **`AdminDaftarSekolahScreen.kt`**: UI Formulir pendaftaran instansi sekolah.
-- **`AdminBerandaScreen.kt`**: Tampilan dasbor statistik utama (mengganti grafik nyata dengan dummy _card_ berwarna _PrimaryBlue_).
+- **`AdminBerandaScreen.kt`**: Tampilan dasbor statistik utama.
 - **`AdminProfilScreen.kt`**: Menu pengaturan akun, *privasi*, serta fitur peralihan hak akses (*View As*).
 - **`AdminPenggunaScreen.kt` & `AdminDaftarAkunScreen.kt`**: Layar untuk menampilkan daftar seluruh pengguna beserta _chip_ filter perannya dan formulir _dropdown_ pengisian akun baru (relasi *Parent-Student* diletakkan berdampingan).
 - **`AdminRelasiAnakScreen.kt` & `AdminKelolaPeranScreen.kt`**: Layar pengaturan _Roles_ akun individu, pencarian/asosiasi NIS anak dengan akun orang tua.
@@ -32,16 +32,8 @@ Di sisi lain, jika aplikasi memaksa pembuatan instan (_create user via client_),
   - Ditambahkan proteksi pada _middleware_ `verifyAdminToken` agar *endpoint* krusial (seperti `POST /admin/users` atau *reset password*) menolak permintaan (mengembalikan 401/403) jika token tersebut bukan dari _Super Admin_ atau akun dengan level _Role_ `ADMIN`.
   - Fungsi untuk mereset kata sandi dan membuat akun _via_ Backend _Endpoint_ menggunakan `Firebase Admin SDK`, mencegah pergantian sesi _Login_ secara paksa di perangkat penguji (Android).
 - **`app/.../AuthRepository.kt`:**
-  - Fungsi `loginWithEmailOrNis` dimodifikasi agar menyambung mulus dengan kebijakan verifikasi ketat. Jika pengguna mencoba _login_ dengan profil dan kata sandi demo yang tepat pada konfigurasi **Demo Mode**, aplikasi akan dengan pintar men-_generate_ Profil Tiruan (_bypass_) lokal tanpa interupsi _network_ ke port 9099 yang gagal.
-  - Untuk lingkungan produksi atau operasi Admin nyata, `createStudentAccount`, `createParentAccount`, dsb. dipindahkan dari memanggil fungsi lokal `createUserWithEmailAndPassword` menjadi sebuah permintaan **HTTP POST** bertoken ke peladen `backend` di _endpoint_ REST (agar status sesi Admin yang memicu pembuatan ini tidak diganggu).
-- **`app/.../AuthViewModel.kt`**: Menerima _refactoring_ di mana limitasi _Role Guard_ pengecekan hak masuk (_contoh: Guru tak bisa akses Dasbor Admin_) di_handle_ dan dievaluasi di `Repository`, sedangkan ViewModel hanya menangani UI State saja.
+  - Fungsi `loginWithEmailOrNis` dimodifikasi agar menyambung mulus dengan kebijakan verifikasi ketat.
+- **`app/.../AuthViewModel.kt`**: Pengecekan hak masuk (_contoh: Guru tak bisa akses Dasbor Admin_) di_handle_ dan dievaluasi di `Repository` dan `RouteGuard`.
 
 ## 3. Tata Kelola Lingkungan Pengembangan (Clean-Up)
 File-file _redundant_ (bekas log _patch_, uji coba manual, _health check curl_, dsb.) yang memperbesar repositori telah dibersihkan sepenuhnya via *Command Line*.
-
-*File Dihapus:*
-- `test-admin-endpoints.js`, `test-startup.js`, `test-export.js`, dsb.
-- `patch.js`, `patch2.js`, dsb.
-- `cek-semua.js` dan `verify-rest-data.js`
-
-Lingkungan kerja sekarang dalam kondisi termodern, rapi, dengan _routing_ dan layar siap presentasi/pengujian.

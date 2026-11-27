@@ -37,14 +37,13 @@ Sistem login dikunci ketat dengan aturan berikut:
 
 | Role | Email | Password | Roles (Hak Akses) |
 |---|---|---|---|
-| Admin | admin12@scolarsia.ac.id | 1a2d3m4i5n | ADMIN, GURU, WALI_KELAS |
+| Admin | admin12@scolarsia.ac.id | 1a2d3m4i5n | ADMIN |
 | Guru | guru12@scolarsia.ac.id | 1g2u3r4u | GURU, WALI_KELAS |
 | Wali Kelas | walikelas12@scolarsia.ac.id | 1w2a3l4i | WALI_KELAS, GURU |
 | Siswa | siswa01@scolarsia.ac.id | 1s2i3w4a | SISWA |
 | Orang Tua | ortu_siswa01@scolarsia.ac.id | 1o2r3a4n5g | ORANG_TUA |
-| Akun Semua Role | demo.semua@scolarsia.ac.id | 1s2e3m4u5a | ADMIN, GURU, WALI_KELAS, SISWA, ORANG_TUA |
 
-> **Catatan Penting:** Mode demo hanya mengizinkan 6 akun tunggal di atas untuk login. Peran Siswa dan Orang Tua terpisah total tanpa akses silang. Login dengan email di luar tabel ini akan ditolak otomatis.
+> **Catatan Penting:** Mode demo hanya mengizinkan 5 akun tunggal di atas untuk login. Setiap akun dikunci secara ketat sesuai hak akses masing-masing. Login dengan email di luar tabel ini akan ditolak otomatis.
 
 ---
 
