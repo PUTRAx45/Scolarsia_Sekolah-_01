@@ -26,6 +26,7 @@ import com.example.kawansekolah.ui.theme.PrimaryBlue
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AdminPenggunaScreen(
+    userList: List<Pengguna> = emptyList(),
     onBackClick: () -> Unit = {},
     onDaftarkanAkunClick: () -> Unit = {},
     onUserClick: (String) -> Unit = {}
@@ -34,6 +35,19 @@ fun AdminPenggunaScreen(
     var selectedFilter by remember { mutableIntStateOf(0) }
 
     val filterOptions = listOf("Semua", "Guru", "Siswa", "Orang tua")
+
+    val filteredList = remember(userList, searchQuery, selectedFilter) {
+        userList.filter { user ->
+            val matchesSearch = searchQuery.isBlank() || user.nama.contains(searchQuery, ignoreCase = true) || user.email.contains(searchQuery, ignoreCase = true)
+            val matchesFilter = when (selectedFilter) {
+                1 -> user.role.equals("guru", ignoreCase = true) || user.role.equals("TEACHER", ignoreCase = true)
+                2 -> user.role.equals("siswa", ignoreCase = true) || user.role.equals("STUDENT", ignoreCase = true)
+                3 -> user.role.equals("orang_tua", ignoreCase = true) || user.role.equals("PARENT", ignoreCase = true)
+                else -> true
+            }
+            matchesSearch && matchesFilter
+        }
+    }
 
     Column(
         modifier = Modifier
@@ -99,28 +113,39 @@ fun AdminPenggunaScreen(
             ) {
                 Text("Akun terdaftar", fontSize = 13.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface)
                 Surface(shape = RoundedCornerShape(12.dp), color = Color(0xFFECFDF5)) {
-                    Text("420 akun", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = Color(0xFF10B981), modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp))
+                    Text("${filteredList.size} akun", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = Color(0xFF10B981), modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp))
                 }
             }
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            // Dummy List
-            LazyColumn(
-                modifier = Modifier.weight(1f),
-                verticalArrangement = Arrangement.spacedBy(10.dp)
-            ) {
-                item {
-                    UserCardItem(initials = "RP", name = "Rani Puspitasari", role = "Guru • Matematika", status = "Aktif", onClick = { onUserClick("Rani Puspitasari") })
+            if (filteredList.isEmpty()) {
+                Box(
+                    modifier = Modifier.weight(1f),
+                    contentAlignment = Alignment.Center
+                ) {
+                    EmptyStateView(
+                        title = "Belum ada akun terdaftar",
+                        description = "Belum ada akun pengguna terdaftar pada kategori ini.",
+                        icon = Icons.Default.Group
+                    )
                 }
-                item {
-                    UserCardItem(initials = "AP", name = "Andi Pratama", role = "Siswa • IX A", status = "Aktif", onClick = { onUserClick("Andi Pratama") })
-                }
-                item {
-                    UserCardItem(initials = "BS", name = "Budi Santoso", role = "Orang tua • 1 anak", status = "Aktif", onClick = { onUserClick("Budi Santoso") })
-                }
-                item {
-                    UserCardItem(initials = "SA", name = "Siti Aulia", role = "Siswa • IX A", status = "Aktif", onClick = { onUserClick("Siti Aulia") })
+            } else {
+                LazyColumn(
+                    modifier = Modifier.weight(1f),
+                    verticalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
+                    items(filteredList.size) { index ->
+                        val user = filteredList[index]
+                        val initials = user.nama.take(2).uppercase()
+                        UserCardItem(
+                            initials = if (initials.isNotBlank()) initials else "US",
+                            name = user.nama,
+                            role = "${user.role} • ${user.email}",
+                            status = if (user.aktif) "Aktif" else "Nonaktif",
+                            onClick = { onUserClick(user.nama) }
+                        )
+                    }
                 }
             }
 

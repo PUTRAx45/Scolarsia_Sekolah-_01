@@ -33,6 +33,7 @@ fun AdminBerandaScreen(
     totalSiswa: Int = 0,
     totalOrtu: Int = 0,
     totalKelas: Int = 0,
+    totalMapel: Int = 0,
     activities: List<String> = emptyList(),
     onNotificationClick: () -> Unit = {},
     onNavigateToPengguna: () -> Unit = {},
@@ -44,8 +45,8 @@ fun AdminBerandaScreen(
             .background(MaterialTheme.colorScheme.background)
     ) {
         TopBarArea(
-            userName = "Pak Arif",
-            unreadCount = 2,
+            userName = userName,
+            unreadCount = unreadCount,
             onNotificationClick = onNotificationClick
         )
 
@@ -79,7 +80,7 @@ fun AdminBerandaScreen(
                             color = ColorWhite.copy(alpha = 1f)
                         ) {
                             Text(
-                                text = "26 guru",
+                                text = "$totalGuru guru",
                                 fontSize = 10.sp,
                                 fontWeight = FontWeight.Bold,
                                 color = PrimaryBlue,
@@ -92,7 +93,7 @@ fun AdminBerandaScreen(
 
                     Row(verticalAlignment = Alignment.Bottom) {
                         Text(
-                            text = "384",
+                            text = "$totalSiswa",
                             fontSize = 40.sp,
                             fontWeight = FontWeight.Bold,
                             color = ColorWhite
@@ -124,7 +125,7 @@ fun AdminBerandaScreen(
                             ) {
                                 Text("KELAS", fontSize = 10.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
                                 Spacer(modifier = Modifier.height(4.dp))
-                                Text("18", fontSize = 16.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface)
+                                Text("$totalKelas", fontSize = 16.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface)
                             }
                         }
                         
@@ -139,7 +140,7 @@ fun AdminBerandaScreen(
                             ) {
                                 Text("MAPEL", fontSize = 10.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
                                 Spacer(modifier = Modifier.height(4.dp))
-                                Text("12", fontSize = 16.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface)
+                                Text("$totalMapel", fontSize = 16.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface)
                             }
                         }
                     }
@@ -183,7 +184,7 @@ fun AdminBerandaScreen(
                     )
                     Spacer(modifier = Modifier.height(4.dp))
                     Text(
-                        text = "Bobot diperbarui • Kelas IX A ditambahkan",
+                        text = if (activities.isEmpty()) "Belum ada aktivitas" else activities.joinToString(" • "),
                         fontSize = 12.sp,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -203,7 +204,7 @@ fun AdminBerandaScreen(
                     )
                     Spacer(modifier = Modifier.height(4.dp))
                     Text(
-                        text = "26 guru • 384 siswa • 310 orang tua aktif",
+                        text = "$totalGuru guru • $totalSiswa siswa • $totalOrtu orang tua aktif",
                         fontSize = 12.sp,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
