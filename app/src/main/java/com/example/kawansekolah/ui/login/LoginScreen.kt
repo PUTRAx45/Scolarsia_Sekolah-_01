@@ -40,7 +40,6 @@ import com.example.kawansekolah.BuildConfig
 import com.example.kawansekolah.R
 import com.example.kawansekolah.data.model.User
 import com.example.kawansekolah.data.model.UserRole
-import com.example.kawansekolah.demo.DemoAccounts
 import com.example.kawansekolah.ui.theme.TextMuted
 import com.example.kawansekolah.utils.DevHost
 import com.example.kawansekolah.utils.UserSessionManager
@@ -71,8 +70,6 @@ fun LoginScreen(
     var passwordInput by remember { mutableStateOf("") }
     var isPasswordVisible by remember { mutableStateOf(false) }
     var errorMessage by remember { mutableStateOf("") }
-    var isEmailFocused by remember { mutableStateOf(false) }
-    var isDropdownDismissedManually by remember { mutableStateOf(false) }
 
     var showServerConfigDialog by remember { mutableStateOf(false) }
 
@@ -81,8 +78,6 @@ fun LoginScreen(
         identifierInput = ""
         passwordInput = ""
         errorMessage = ""
-        isEmailFocused = false
-        isDropdownDismissedManually = false
         authViewModel.resetState()
     }
 
@@ -109,29 +104,6 @@ fun LoginScreen(
     }
 
     val passwordPlaceholder = "••••••••"
-
-    val demoSuggestions = remember(selectedRole) {
-        when (selectedRole) {
-            UserRole.GURU -> listOf("guru12@scolarsia.ac.id", "walikelas12@scolarsia.ac.id")
-            UserRole.WALI_KELAS -> listOf("walikelas12@scolarsia.ac.id", "guru12@scolarsia.ac.id")
-            UserRole.SISWA -> listOf("siswa01@scolarsia.ac.id")
-            UserRole.ORANG_TUA -> listOf("ortu_siswa01@scolarsia.ac.id")
-            UserRole.ADMIN -> listOf("admin12@scolarsia.ac.id")
-        }
-    }
-
-    val emailHistory = remember(selectedRole) {
-        sessionManager.getEmailHistory()
-    }
-
-    val allSuggestions = remember(demoSuggestions, emailHistory, identifierInput) {
-        val combined = (demoSuggestions + emailHistory).distinct()
-        if (identifierInput.isBlank()) {
-            combined
-        } else {
-            combined.filter { it.contains(identifierInput.trim(), ignoreCase = true) }
-        }
-    }
 
     LaunchedEffect(authUiState) {
         when (val state = authUiState) {
@@ -232,85 +204,33 @@ fun LoginScreen(
 
             Spacer(modifier = Modifier.height(28.dp))
 
-            Box(modifier = Modifier.fillMaxWidth()) {
-                OutlinedTextField(
-                    value = identifierInput,
-                    onValueChange = {
-                        identifierInput = it
-                        isDropdownDismissedManually = false
-                    },
-                    label = { Text(fieldLabel) },
-                    placeholder = { Text(emailPlaceholder, fontSize = 12.sp, color = TextMuted) },
-                    colors = OutlinedTextFieldDefaults.colors(
-                        focusedBorderColor = MaterialTheme.colorScheme.primary,
-                        unfocusedBorderColor = MaterialTheme.colorScheme.outline,
-                        focusedLabelColor = MaterialTheme.colorScheme.primary,
-                        unfocusedLabelColor = MaterialTheme.colorScheme.onSurfaceVariant,
-                        focusedTextColor = MaterialTheme.colorScheme.onSurface,
-                        unfocusedTextColor = MaterialTheme.colorScheme.onSurface,
-                        cursorColor = MaterialTheme.colorScheme.primary
-                    ),
-                    keyboardOptions = KeyboardOptions(
-                        keyboardType = KeyboardType.Email,
-                        imeAction = ImeAction.Next
-                    ),
-                    keyboardActions = KeyboardActions(
-                        onNext = { focusManager.moveFocus(FocusDirection.Down) }
-                    ),
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .semantics { contentType = ContentType.EmailAddress }
-                        .onFocusChanged { focusState ->
-                            isEmailFocused = focusState.isFocused
-                            if (focusState.isFocused) {
-                                isDropdownDismissedManually = false
-                            }
-                        },
-                    singleLine = true,
-                    shape = RoundedCornerShape(12.dp)
-                )
-
-                DropdownMenu(
-                    expanded = isEmailFocused && !isDropdownDismissedManually && allSuggestions.isNotEmpty(),
-                    onDismissRequest = { isDropdownDismissedManually = true },
-                    modifier = Modifier
-                        .fillMaxWidth(0.85f)
-                        .background(MaterialTheme.colorScheme.surface)
-                ) {
-                    allSuggestions.forEach { suggestion ->
-                        DropdownMenuItem(
-                            text = {
-                                Column {
-                                    Text(
-                                        text = suggestion,
-                                        fontWeight = FontWeight.Medium,
-                                        fontSize = 13.sp,
-                                        color = MaterialTheme.colorScheme.onSurface
-                                    )
-                                    val demoAcc = DemoAccounts.getDemoAccountInfo(suggestion)
-                                    if (demoAcc != null) {
-                                        Text(
-                                            text = "Saran Akun Demo",
-                                            fontSize = 10.sp,
-                                            fontWeight = FontWeight.Bold,
-                                            color = MaterialTheme.colorScheme.primary
-                                        )
-                                    }
-                                }
-                            },
-                            onClick = {
-                                identifierInput = suggestion
-                                val demoAcc = DemoAccounts.getDemoAccountInfo(suggestion)
-                                if (demoAcc != null) {
-                                    passwordInput = demoAcc.password
-                                }
-                                isDropdownDismissedManually = true
-                                focusManager.moveFocus(FocusDirection.Down)
-                            }
-                        )
-                    }
-                }
-            }
+            OutlinedTextField(
+                value = identifierInput,
+                onValueChange = { identifierInput = it },
+                label = { Text(fieldLabel) },
+                placeholder = { Text(emailPlaceholder, fontSize = 12.sp, color = TextMuted) },
+                colors = OutlinedTextFieldDefaults.colors(
+                    focusedBorderColor = MaterialTheme.colorScheme.primary,
+                    unfocusedBorderColor = MaterialTheme.colorScheme.outline,
+                    focusedLabelColor = MaterialTheme.colorScheme.primary,
+                    unfocusedLabelColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                    focusedTextColor = MaterialTheme.colorScheme.onSurface,
+                    unfocusedTextColor = MaterialTheme.colorScheme.onSurface,
+                    cursorColor = MaterialTheme.colorScheme.primary
+                ),
+                keyboardOptions = KeyboardOptions(
+                    keyboardType = KeyboardType.Email,
+                    imeAction = ImeAction.Next
+                ),
+                keyboardActions = KeyboardActions(
+                    onNext = { focusManager.moveFocus(FocusDirection.Down) }
+                ),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .semantics { contentType = ContentType.EmailAddress },
+                singleLine = true,
+                shape = RoundedCornerShape(12.dp)
+            )
 
             Spacer(modifier = Modifier.height(14.dp))
 

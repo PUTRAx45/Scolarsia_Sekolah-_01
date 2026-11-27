@@ -111,15 +111,7 @@ object AcademicRepository {
     }
 
     private fun getFallbackSubjects(): List<SubjectEntity> {
-        return listOf(
-            SubjectEntity("subj_matematika_9", "guru_smp_01", "Matematika", "SMP", 9),
-            SubjectEntity("subj_bindo_9", "guru_smp_01", "Bahasa Indonesia", "SMP", 9),
-            SubjectEntity("subj_fisika_9", "guru_smp_01", "Fisika", "SMP", 9),
-            SubjectEntity("subj_biologi_9", "guru_smp_01", "Biologi", "SMP", 9),
-            SubjectEntity("subj_sejarah_9", "guru_smp_01", "Sejarah", "SMP", 9),
-            SubjectEntity("subj_bing_9", "guru_smp_01", "Bahasa Inggris", "SMP", 9),
-            SubjectEntity("subj_informatika_9", "guru_smp_01", "Informatika", "SMP", 9)
-        )
+        return emptyList()
     }
 
     suspend fun getSubjectsForTeacher(teacherId: String): List<SubjectEntity> {
@@ -183,27 +175,8 @@ object AcademicRepository {
         }
     }
 
-    private fun getFallbackTopics(subjectId: String): List<TopicEntity> {
-        return when (subjectId) {
-            "subj_matematika_9" -> listOf(
-                TopicEntity("top_aritmatika", "guru_smp_01", subjectId, "Aritmatika", 1.0),
-                TopicEntity("top_geometri", "guru_smp_01", subjectId, "Geometri", 2.0),
-                TopicEntity("top_pitagoras", "guru_smp_01", subjectId, "Pitagoras", 1.5)
-            )
-            "subj_bindo_9" -> listOf(
-                TopicEntity("top_lho", "guru_smp_01", subjectId, "Teks LHO", 1.0),
-                TopicEntity("top_puisi", "guru_smp_01", subjectId, "Puisi & Majas", 1.0)
-            )
-            "subj_fisika_9" -> listOf(
-                TopicEntity("top_kinematika", "guru_smp_01", subjectId, "Kinematika Gerak", 1.0),
-                TopicEntity("top_newton", "guru_smp_01", subjectId, "Hukum Newton", 1.5)
-            )
-            "subj_biologi_9" -> listOf(
-                TopicEntity("top_sel", "guru_smp_01", subjectId, "Struktur Sel", 1.0),
-                TopicEntity("top_genetik", "guru_smp_01", subjectId, "Genetik & Hereditas", 2.0)
-            )
-            else -> emptyList()
-        }
+    private fun getFallbackTopics(subjectId: String = ""): List<TopicEntity> {
+        return emptyList()
     }
 
     suspend fun addTopic(subjectId: String, name: String, weight: Double): TopicEntity {
@@ -267,19 +240,8 @@ object AcademicRepository {
         }
     }
 
-    private fun getFallbackGrades(studentId: String, subjectId: String): List<GradeEntity> {
-        return when (subjectId) {
-            "subj_matematika_9" -> listOf(
-                GradeEntity("g1", studentId, "guru_smp_01", subjectId, "Matematika", "top_aritmatika", "Aritmatika", 90.0),
-                GradeEntity("g2", studentId, "guru_smp_01", subjectId, "Matematika", "top_geometri", "Geometri", 90.0),
-                GradeEntity("g3", studentId, "guru_smp_01", subjectId, "Matematika", "top_pitagoras", "Pitagoras", 70.0)
-            )
-            "subj_bindo_9" -> listOf(
-                GradeEntity("g4", studentId, "guru_smp_01", subjectId, "Bahasa Indonesia", "top_lho", "Teks LHO", 85.0),
-                GradeEntity("g5", studentId, "guru_smp_01", subjectId, "Bahasa Indonesia", "top_puisi", "Puisi & Majas", 95.0)
-            )
-            else -> emptyList()
-        }
+    private fun getFallbackGrades(studentId: String = "", subjectId: String = ""): List<GradeEntity> {
+        return emptyList()
     }
 
     suspend fun saveStudentGradesBatch(

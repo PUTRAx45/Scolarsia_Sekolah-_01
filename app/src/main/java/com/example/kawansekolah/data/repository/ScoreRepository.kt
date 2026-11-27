@@ -22,27 +22,6 @@ object ScoreRepository {
     private val localScores = mutableListOf<Score>()
     private val localPenugasan = mutableListOf<Penugasan>()
 
-    init {
-        localScores.addAll(
-            listOf(
-                Score("sc_1", "std_1", "Ahmad Budi", "guru_smp_01", "subj_matematika_9", "cls_9a", "komp_1", "per_1", "KUIS_HARIAN", 85.0, "Bagus"),
-                Score("sc_2", "std_2", "Siti Rahma", "guru_smp_01", "subj_matematika_9", "cls_9a", "komp_1", "per_1", "KUIS_HARIAN", 92.0, "Sangat baik"),
-                Score("sc_3", "std_3", "Dewi Lestari", "guru_smp_01", "subj_matematika_9", "cls_9a", "komp_1", "per_1", "KUIS_HARIAN", 78.0, "Cukup"),
-                Score("sc_4", "std_1", "Ahmad Budi", "guru_smp_01", "subj_matematika_9", "cls_9a", "komp_2", "per_1", "KARAKTER", 90.0, "Disiplin dan aktif"),
-                Score("sc_5", "std_2", "Siti Rahma", "guru_smp_01", "subj_matematika_9", "cls_9a", "komp_2", "per_1", "KARAKTER", 88.0, "Kerja sama baik")
-            )
-        )
-
-        // Dummy Penugasan: Satu guru HANYA satu mapel
-        localPenugasan.addAll(
-            listOf(
-                Penugasan("guru_smp_01_subj_matematika_9_cls_9a", "guru_smp_01", "subj_matematika_9", "cls_9a"),
-                Penugasan("guru_smp_03_subj_bindo_9_cls_9a", "guru_smp_03", "subj_bindo_9", "cls_9a"),
-                Penugasan("guru_smp_02_subj_ipa_9_cls_9b", "guru_smp_02", "subj_ipa_9", "cls_9b")
-            )
-        )
-    }
-
     suspend fun saveScore(
         userRole: String,
         userId: String,
@@ -197,42 +176,23 @@ object ScoreRepository {
         }
     }
 
-    // Dummy Helpers
     fun getDummyKelasList(): List<Kelas> {
-        return listOf(
-            Kelas("cls_9a", "Kelas 9-A", "guru_wali_01", "SMP", 9),
-            Kelas("cls_9b", "Kelas 9-B", "guru_wali_02", "SMP", 9)
-        )
+        return emptyList()
     }
 
-    fun getDummyStudentsList(classId: String): List<Student> {
-        return listOf(
-            Student("std_1", "Ahmad Budi", "12345", classId),
-            Student("std_2", "Siti Rahma", "12346", classId),
-            Student("std_3", "Dewi Lestari", "12347", classId),
-            Student("std_4", "Fajar Pratama", "12348", classId)
-        )
+    fun getDummyStudentsList(classId: String = ""): List<Student> {
+        return emptyList()
     }
 
     fun getDummySubjectsList(): List<SubjectEntity> {
-        return listOf(
-            SubjectEntity("subj_matematika_9", "guru_smp_01", "Matematika", "SMP", 9),
-            SubjectEntity("subj_bindo_9", "guru_smp_03", "Bahasa Indonesia", "SMP", 9)
-        )
+        return emptyList()
     }
 
-    fun getDummyKompetensiList(subjectId: String): List<Kompetensi> {
-        return listOf(
-            Kompetensi("komp_1", subjectId, "KD 3.1", "Aritmatika & Aljabar Dasar"),
-            Kompetensi("komp_2", subjectId, "KD 3.2", "Geometri & Pitagoras"),
-            Kompetensi("komp_3", subjectId, "KD 4.1", "Sikap & Keaktifan Belajar")
-        )
+    fun getDummyKompetensiList(subjectId: String = ""): List<Kompetensi> {
+        return emptyList()
     }
 
     fun getDummyPeriodeList(): List<Periode> {
-        return listOf(
-            Periode("per_1", "Semester Ganjil 2025/2026", "Ganjil", "2025/2026"),
-            Periode("per_2", "Semester Genap 2025/2026", "Genap", "2025/2026")
-        )
+        return emptyList()
     }
 }
